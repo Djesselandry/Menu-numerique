@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant Menu Interface</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="app.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-content">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+            <path d="M7 2v20"/>
+            <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>Restaurant</h1>
+          <p>Délicieux & Frais</p>
+        </div>
+      </div>
+      <button class="menu-btn" onclick="openNavDrawer()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Menu Items -->
+  <div class="menu-container">
+    <div class="menu-grid" id="menuGrid"></div>
+  </div>
+
+  <!-- Bottom Cart Bar -->
+  <div class="cart-bar" id="cartBar">
+    <div class="cart-bar-content">
+      <button class="cart-button" onclick="openCartDrawer()">
+        <div class="cart-button-left">
+          <div class="cart-icon-wrapper">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+              <path d="M3 6h18"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <div class="cart-info">
+            <p>Panier</p>
+            <p id="cartItemsCount"></p>
+          </div>
+        </div>
+        <div class="cart-total" id="cartTotalPrice"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="overlay" id="overlay" onclick="closeAllDrawers()"></div>
+
+  <!-- Cart Drawer -->
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="drawer-header">
+      <div class="drawer-header-left">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+          <path d="M3 6h18"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <h2 class="drawer-title">Mon Panier</h2>
+        <span class="item-count-badge" id="drawerItemCount"></span>
+      </div>
+      <button class="close-btn" onclick="closeCartDrawer()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M18 6 6 18"/>
+          <path d="m6 6 12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-content" id="cartContent"></div>
+    <div class="drawer-footer" id="cartFooter"></div>
+  </div>
+
+  <!-- Navigation Drawer -->
+  <div class="nav-drawer" id="navDrawer">
+    <div class="nav-drawer-content">
+      <div class="nav-header">
+        <h3 class="nav-title">Catégories</h3>
+        <button class="nav-close-btn" onclick="closeNavDrawer()">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="categories-list" id="categoriesList"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toastMessage"></span>
+  </div>
+</body>
+</html>

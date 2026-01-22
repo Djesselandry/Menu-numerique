@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css">
+    
+</head>
+<body>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo-box">
+                    <svg class="logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </div>
+                <div class="header-title">
+                    <h1>Dashboard Restaurant</h1>
+                    <p>Gestion des commandes et du menu</p>
+                </div>
+            </div>
+            <div class="header-date">
+                <p>Aujourd'hui</p>
+                <p id="current-date"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="orders">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                Gestion de commandes
+            </button>
+            <button class="tab" data-tab="menu">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Gestion de menu
+            </button>
+            <button class="tab" data-tab="invoices">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Gestion de factures
+            </button>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="orders-tab" class="tab-content active">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2>
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Commandes Actives
+                        <span class="badge badge-orange" id="active-orders-count">0</span>
+                    </h2>
+                </div>
+            </div>
+            <div id="orders-grid" class="grid grid-cols-3"></div>
+
+            <div id="served-orders-section" style="display: none; margin-top: 3rem;">
+                <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: #6b7280; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Commandes Servies
+                </h2>
+                <div id="served-orders-grid" class="grid grid-cols-3"></div>
+            </div>
+        </div>
+
+        <!-- Menu Tab -->
+        <div id="menu-tab" class="tab-content">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2>
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Gestion du Menu
+                        <span class="badge badge-orange" id="menu-items-count">0</span>
+                    </h2>
+                </div>
+                <button class="btn btn-primary" onclick="openMenuModal()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Ajouter un article
+                </button>
+            </div>
+
+            <div class="category-filters" id="category-filters"></div>
+            <input type="text" class="input" id="menu-search" placeholder="Rechercher un article...">
+            <div id="menu-grid" class="grid grid-cols-4"></div>
+        </div>
+
+        <!-- Invoices Tab -->
+        <div id="invoices-tab" class="tab-content">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2>
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Gestion des Factures
+                        <span class="badge badge-orange" id="invoices-count">0</span>
+                    </h2>
+                </div>
+            </div>
+            <input type="text" class="input" id="invoice-search" placeholder="Rechercher par numéro de facture ou numéro de table...">
+            <div id="invoices-grid" class="grid grid-cols-3"></div>
+        </div>
+    </div>
+
+    <!-- Menu Item Modal -->
+    <div id="menu-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Ajouter un article</h3>
+            </div>
+            <form id="menu-form">
+                <div class="form-group">
+                    <label>Nom *</label>
+                    <input type="text" id="item-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="item-description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Prix (€) *</label>
+                    <input type="number" id="item-price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select id="item-category">
+                        <option>Burgers</option>
+                        <option>Pizzas</option>
+                        <option>Pâtes</option>
+                        <option>Salades</option>
+                        <option>Sushi</option>
+                        <option>Desserts</option>
+                        <option>Boissons</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>URL de l'image</label>
+                    <input type="text" id="item-image">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label class="switch">
+                        <input type="checkbox" id="item-available" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <label>Article disponible</label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeMenuModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
