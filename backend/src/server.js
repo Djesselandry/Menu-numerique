@@ -32,7 +32,7 @@ io.on('connection', (socket) => {
 // Exemple : envoyer notification
 // io.emit('newOrder', { orderId: 123, table: 5 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`🌐 Serveur lancé sur http://localhost:${PORT}`);
 });

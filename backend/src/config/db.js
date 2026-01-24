@@ -10,13 +10,15 @@ const pool = new Pool({
   database: process.env.DB_NAME
 });
 
-// Test connexion
-pool.connect((err, client, release) => {
-  if (err) {
-    return console.error('Erreur connexion PostgreSQL', err.stack);
+// TEST DE CONNEXION AU DÉMARRAGE
+(async () => {
+  try {
+    const client = await pool.connect();
+    console.log('✅ Connecté à PostgreSQL');
+    client.release();
+  } catch (err) {
+    console.error('❌ Erreur connexion PostgreSQL :', err.message);
   }
-  console.log('✅ Connecté à PostgreSQL');
-  release();
-});
+})();
 
 module.exports = pool;
