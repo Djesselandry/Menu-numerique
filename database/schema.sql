@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS tables (
 -- -------------------------
 -- TABLE : menu_items
 -- -------------------------
-CREATE TABLE IF NOT EXISTS menu_items (
+CREATE TABLE IF NOT EXISTS menu (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS order_items (
   id SERIAL PRIMARY KEY,
   order_id INT NOT NULL,
-  menu_item_id INT NOT NULL,
+  menu_id INT NOT NULL,
   quantity INT NOT NULL CHECK (quantity > 0),
   unit_price NUMERIC(10,2) NOT NULL,
   subtotal NUMERIC(10,2) NOT NULL,
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     ON DELETE CASCADE,
 
   CONSTRAINT fk_item_menu
-    FOREIGN KEY (menu_item_id)
-    REFERENCES menu_items(id)
+    FOREIGN KEY (menu_id)
+    REFERENCES menu(id)
 );
 
 -- -------------------------
@@ -83,7 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_created
   ON orders(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_menu_active
-  ON menu_items(is_active);
+  ON menu(is_active);
 
 -- -------------------------
 -- INITIAL SETTINGS (OPTIONNEL MAIS RECOMMANDE)
