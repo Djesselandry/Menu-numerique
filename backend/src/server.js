@@ -7,6 +7,9 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+// rendre uploads accessibles
+app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.use('/api/menu', menuRoutes)

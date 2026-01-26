@@ -11,15 +11,43 @@ const getMenu = async (req, res) => {
 };
 
 // POST /api/menu
-const addMenuItem = async (req, res) => {
+const createMenuItem = async (req, res) => {
   try {
-    const { name, price, available } = req.body;
-    const item = await Menu.addMenuItem(name, price, available);
-    res.json(item);
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
+    const name = req.body?.name?.trim();
+    const price = (req.body?.price);
+    const available =
+      req.body?.available === "true" || req.body?.available === true;
+
+    if (!name || isNaN(price)) {
+      return res.status(400).json({
+        error: "Données invalides",
+        details: { name, price }
+      });
+    }
+
+    const imageUrl = req.file
+      ? `/uploads/menu/${req.file.filename}`
+      : null;
+
+    const item = await MenuModel.createMenuItem({
+      name,
+      price,
+      available,
+      image_url: imageUrl
+    });
+
+    res.status(201).json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 };
+
+
+
 
 // PUT /api/menu/:id
 const updateMenuItem = async (req, res) => {
@@ -44,4 +72,4 @@ const deleteMenuItem = async (req, res) => {
   }
 };
 
-module.exports = { getMenu, addMenuItem, updateMenuItem, deleteMenuItem };
+module.exports = { getMenu, createMenuItem, updateMenuItem, deleteMenuItem };
