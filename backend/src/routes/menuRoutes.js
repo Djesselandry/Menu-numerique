@@ -5,7 +5,7 @@ const upload = require("../middlewares/upload");
 console.log("menu.routes.js chargé");
 
 router.get('/', menuController.getMenu);          // Récupérer menu
-router.post('/', menuController.createMenuItem);     // Ajouter plat
+// Ajouter plat
 router.put('/:id', menuController.updateMenuItem); // Modifier plat
 router.delete('/:id', menuController.deleteMenuItem); // Supprimer plat
 

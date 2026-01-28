@@ -9,13 +9,13 @@ const getAllMenu = async () => {
 // Ajouter un plat
 
 const createMenuItem = async (data) => {
-  const { name, price, available,image_url } = data;
+  const { name, price, is_active } = data;
 
   const result = await pool.query(
-    `INSERT INTO menu (name, price, available, image_url)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO menu (name, price, is_active)
+     VALUES ($1, $2, $3)
      RETURNING *`,
-    [name, price, available, image_url]
+    [name, price, is_active]
   );
 
   return result.rows[0];
@@ -27,10 +27,10 @@ module.exports = {
 
 
 // Modifier un plat
-const updateMenuItem = async (id, name, price, available) => {
+const updateMenuItem = async (id, name, price, is_active) => {
   const res = await pool.query(
     'UPDATE menu SET name=$1, price=$2, is_active=$3 WHERE id=$4 RETURNING *',
-    [name, price, available, id]
+    [name, price, is_active, id]
   );
   return res.rows[0];
 };

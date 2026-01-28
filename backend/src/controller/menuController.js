@@ -17,9 +17,9 @@ const createMenuItem = async (req, res) => {
     console.log("FILE:", req.file);
 
     const name = req.body?.name?.trim();
-    const price = (req.body?.price);
+    const price = parseInt(req.body?.price,10);
     const available =
-      req.body?.available === "true" || req.body?.available === true;
+      req.body?.is_active === "true" || req.body?.is_active === true;
 
     if (!name || isNaN(price)) {
       return res.status(400).json({
@@ -28,15 +28,10 @@ const createMenuItem = async (req, res) => {
       });
     }
 
-    const imageUrl = req.file
-      ? `/uploads/menu/${req.file.filename}`
-      : null;
-
-    const item = await MenuModel.createMenuItem({
+    const item = await Menu.createMenuItem({
       name,
       price,
-      available,
-      image_url: imageUrl
+      is_active
     });
 
     res.status(201).json(item);
