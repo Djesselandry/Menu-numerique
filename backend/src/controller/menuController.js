@@ -18,6 +18,7 @@ const createMenuItem = async (req, res) => {
 
     const name = req.body?.name?.trim();
     const price = parseInt(req.body?.price, 10);
+    const category = req.body?.category?.trim() || 'Tous';
     const is_active = req.body?.available === "true" || req.body?.available === true;
     const description = req.body?.description?.trim() || null;
     const image_url = req.file ? `/menu/${req.file.filename}` : null;
@@ -34,7 +35,8 @@ const createMenuItem = async (req, res) => {
       price,
       is_active,
       description,
-      image_url
+      image_url,
+      category,
     });
 
     res.status(201).json(item);
@@ -53,6 +55,7 @@ const updateMenuItem = async (req, res) => {
     const { id } = req.params;
     const name = req.body?.name?.trim();
     const price = parseInt(req.body?.price, 10);
+    const category = req.body?.category?.trim() || 'Tous';
     const is_active = req.body?.available === "true" || req.body?.available === true;
     const description = req.body?.description?.trim() || null;
     const image_url = req.file ? `/menu/${req.file.filename}` : null;
@@ -71,7 +74,7 @@ const updateMenuItem = async (req, res) => {
       finalImageUrl = existingItem?.image_url || null;
     }
 
-    const item = await Menu.updateMenuItem(id, name, description, price, is_active, finalImageUrl);
+    const item = await Menu.updateMenuItem(id, name, description, price, is_active, finalImageUrl, category);
     res.json(item);
   } catch (err) {
     res.status(500).json({ error: err.message });

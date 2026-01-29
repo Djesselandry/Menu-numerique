@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS menu (
   name VARCHAR(100) NOT NULL,
   description TEXT,
   price NUMERIC(10,2) NOT NULL,
+  image_url VARCHAR(255),
+  category VARCHAR(50),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT NOW()
 );
