@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const pool = require('./config/db');
 const menuRoutes = require('./routes/menuRoutes');
 const app = express();
@@ -10,9 +11,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // rendre uploads accessibles
 app.use("/uploads", express.static("uploads"));
+// servir le frontend client
+app.use(express.static(path.join(__dirname, '../../frontend/client')));
+// servir le frontend admin
+app.use("/admin", express.static(path.join(__dirname, '../../frontend/admin')));
 
 // Routes
 app.use('/api/menu', menuRoutes)
+
+// servir index.html pour les routes non-API
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/client/index.html'));
+});
+
+// servir index.html admin
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/admin/index.html'));
+});
 
 
 

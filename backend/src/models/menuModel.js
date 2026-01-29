@@ -6,31 +6,31 @@ const getAllMenu = async () => {
   return res.rows;
 };
 
-// Ajouter un plat
+// Récupérer un plat par ID
+const getMenuById = async (id) => {
+  const res = await pool.query('SELECT * FROM menu WHERE id = $1', [id]);
+  return res.rows[0];
+};
 
+// Ajouter un plat
 const createMenuItem = async (data) => {
-  const { name, price, is_active } = data;
+  const { name, price, is_active, description, image_url } = data;
 
   const result = await pool.query(
-    `INSERT INTO menu (name, price, is_active)
-     VALUES ($1, $2, $3)
+    `INSERT INTO menu (name, description, price, image_url, is_active)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [name, price, is_active]
+    [name, description || null, price, image_url || null, is_active]
   );
 
   return result.rows[0];
 };
 
-module.exports = {
-  createMenuItem
-};
-
-
 // Modifier un plat
-const updateMenuItem = async (id, name, price, is_active) => {
+const updateMenuItem = async (id, name, description, price, is_active, image_url) => {
   const res = await pool.query(
-    'UPDATE menu SET name=$1, price=$2, is_active=$3 WHERE id=$4 RETURNING *',
-    [name, price, is_active, id]
+    'UPDATE menu SET name=$1, description=$2, price=$3, is_active=$4, image_url=$5 WHERE id=$6 RETURNING *',
+    [name, description || null, price, is_active, image_url || null, id]
   );
   return res.rows[0];
 };
@@ -44,4 +44,4 @@ const deleteMenuItem = async (id) => {
   return res.rows[0];
 };
 
-module.exports = { getAllMenu, createMenuItem, updateMenuItem, deleteMenuItem };
+module.exports = { getAllMenu, getMenuById, createMenuItem, updateMenuItem, deleteMenuItem };

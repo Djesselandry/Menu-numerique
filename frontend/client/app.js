@@ -1,58 +1,30 @@
 
     // Data
-    const menuItems = [
-      {
-        id: 1,
-        name: 'Burger Classique',
-        description: 'Pain brioché, steak haché 180g, cheddar, salade, tomate, oignons',
-        price: 12.90,
-        image: 'https://images.unsplash.com/photo-1627378378955-a3f4e406c5de?w=400',
-        category: 'Burgers',
-        popular: true,
-      },
-      {
-        id: 2,
-        name: 'Pizza Margherita',
-        description: 'Tomate, mozzarella di bufala, basilic frais, huile d\'olive',
-        price: 11.50,
-        image: 'https://images.unsplash.com/photo-1563245738-9169ff58eccf?w=400',
-        category: 'Pizzas',
-        popular: true,
-      },
-      {
-        id: 3,
-        name: 'Pasta Carbonara',
-        description: 'Pâtes fraîches, lardons, crème, parmesan, jaune d\'œuf',
-        price: 13.90,
-        image: 'https://images.unsplash.com/photo-1609166639722-47053ca112ea?w=400',
-        category: 'Pâtes',
-      },
-      {
-        id: 4,
-        name: 'Salade César',
-        description: 'Laitue romaine, poulet grillé, croûtons, parmesan, sauce césar',
-        price: 10.90,
-        image: 'https://images.unsplash.com/photo-1605034298551-baacf17591d1?w=400',
-        category: 'Salades',
-      },
-      {
-        id: 5,
-        name: 'Tiramisu Maison',
-        description: 'Biscuits imbibés de café, mascarpone, cacao',
-        price: 6.50,
-        image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?w=400',
-        category: 'Desserts',
-      },
-      {
-        id: 6,
-        name: 'Sushi Deluxe',
-        description: 'Assortiment de 12 pièces: saumon, thon, avocat, concombre',
-        price: 16.90,
-        image: 'https://images.unsplash.com/photo-1700324822763-956100f79b0d?w=400',
-        category: 'Sushi',
-        popular: true,
-      },
-    ];
+    async function loadMenuFromAPI() {
+  try {
+    const res = await fetch("/api/menu");
+    const data = await res.json();
+
+    // Adapter les données backend → frontend
+    menuItems = data.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description || "Description non disponible",
+      price: Number(item.price),
+      image: item.image_url ? `/uploads${item.image_url}` : '/assets/images/placeholder.png',
+      category: item.category || "Tous",
+      popular: item.popular || false
+    }));
+
+    renderMenu();
+    renderCategories();
+  } catch (error) {
+    console.error("Erreur chargement menu :", error);
+    showToast("Impossible de charger le menu", "error");
+  }
+}
+
+    let menuItems = [];
 
     const categories = ['Tous', 'Burgers', 'Pizzas', 'Pâtes', 'Salades', 'Sushi', 'Desserts'];
 
@@ -325,6 +297,6 @@
     }
 
     // Initialize
-    renderMenu();
+    loadMenuFromAPI();
     renderCategories();
     updateCartBar();
