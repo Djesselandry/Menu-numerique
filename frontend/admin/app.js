@@ -22,7 +22,7 @@
                     price: Number(item.price),
                     image: item.image_url ? `/uploads${item.image_url}` : 'https://via.placeholder.com/400x300?text=Menu',
                     category: item.category || "Autres",
-                    available: item.is_active || true
+                    available: item.is_active
                 }));
 
                 renderMenu();
@@ -371,12 +371,35 @@
             renderMenu();
         }
 
-        function toggleAvailability(id) {
+        async function toggleAvailability(id) {
             const item = menuItems.find(i => i.id === id);
-            if (item) {
-                item.available = !item.available;
+            if (!item) return;
+
+            const newStatus = !item.available;
+
+            try {
+                // Sauvegarder le changement dans la base de données
+                const res = await fetch(`/api/menu/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: item.name,
+                        description: item.description,
+                        price: item.price,
+                        category: item.category,
+                        available: newStatus
+                    })
+                });
+
+                if (!res.ok) throw new Error('Erreur serveur');
+
+                item.available = newStatus;
                 showToast(`${item.name} ${item.available ? 'activé' : 'désactivé'}`);
                 renderMenu();
+            } catch (error) {
+                console.error(error);
+                showToast("Impossible de modifier le statut", "error");
+                renderMenu(); // Annuler le changement visuel en cas d'erreur
             }
         }
 

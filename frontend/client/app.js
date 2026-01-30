@@ -6,7 +6,9 @@
     const data = await res.json();
 
     // Adapter les données backend → frontend
-    menuItems = data.map(item => ({
+    menuItems = data
+      .filter(item => item.is_active) // Ne garder que les articles actifs
+      .map(item => ({
       id: item.id,
       name: item.name,
       description: item.description || "Description non disponible",
