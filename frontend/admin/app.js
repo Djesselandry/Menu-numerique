@@ -1,40 +1,6 @@
 
         // Data
-        let orders = [
-            {
-                id: 1,
-                tableNumber: 5,
-                items: [
-                    { name: 'Burger Classique', quantity: 2, price: 12.90 },
-                    { name: 'Pizza Margherita', quantity: 1, price: 11.50 }
-                ],
-                totalPrice: 37.30,
-                status: 'pending',
-                time: '14:30'
-            },
-            {
-                id: 2,
-                tableNumber: 12,
-                items: [
-                    { name: 'Pasta Carbonara', quantity: 1, price: 13.90 },
-                    { name: 'Salade César', quantity: 1, price: 10.90 },
-                    { name: 'Tiramisu Maison', quantity: 2, price: 6.50 }
-                ],
-                totalPrice: 37.80,
-                status: 'preparing',
-                time: '14:25'
-            },
-            {
-                id: 3,
-                tableNumber: 8,
-                items: [
-                    { name: 'Sushi Deluxe', quantity: 2, price: 16.90 }
-                ],
-                totalPrice: 33.80,
-                status: 'served',
-                time: '14:15'
-            }
-        ];
+        let orders = [];
 
         let menuItems = [];
         let invoices = [];
@@ -66,14 +32,40 @@
             }
         }
 
+        // Charger les commandes depuis l'API
+        async function loadOrdersFromAPI() {
+            try {
+                const res = await fetch("/api/orders");
+                const data = await res.json();
+                
+                // Adapter les données backend -> frontend
+                orders = data.map(order => ({
+                    id: order.id,
+                    tableNumber: order.table_number,
+                    items: order.items || [],
+                    totalPrice: Number(order.total),
+                    status: order.status.toLowerCase(),
+                    time: new Date(order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                }));
+
+                renderOrders();
+            } catch (error) {
+                console.error("Erreur chargement commandes :", error);
+                showToast("Impossible de charger les commandes");
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             updateDate();
             setupTabs();
             loadMenuFromAPI();
-            renderOrders();
+            loadOrdersFromAPI();
             renderInvoices();
             setupSearch();
+            
+            // Rafraîchir les commandes toutes les 10 secondes
+            setInterval(loadOrdersFromAPI, 10000);
         });
 
         function updateDate() {

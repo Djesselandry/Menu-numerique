@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const pool = require('./config/db');
 const menuRoutes = require('./routes/menuRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -17,7 +18,8 @@ app.use(express.static(path.join(__dirname, '../../frontend/client')));
 app.use("/admin", express.static(path.join(__dirname, '../../frontend/admin')));
 
 // Routes
-app.use('/api/menu', menuRoutes)
+app.use('/api/menu', menuRoutes);
+app.use('/api/orders', orderRoutes);
 
 // servir index.html pour les routes non-API
 app.get('/', (req, res) => {
@@ -50,4 +52,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🌐 Serveur lancé sur http://localhost:${PORT}`);
 });
-

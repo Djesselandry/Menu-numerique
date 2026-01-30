@@ -100,11 +100,110 @@
     }
 
     function handleOrder() {
-      showToast('Commande confirmée ! Merci pour votre achat 🎉', 'success');
-      cart = [];
-      closeCartDrawer();
-      renderMenu();
-      updateCartBar();
+      if (cart.length === 0) return;
+      openTableModal();
+    }
+
+    function submitOrder() {
+      const tableInput = document.getElementById('tableNumberInput');
+      const tableId = tableInput.value;
+
+      if (!tableId) {
+        showToast('Veuillez entrer un numéro de table', 'error');
+        return;
+      }
+
+      // Prepare the order data
+      const orderData = {
+        table_id: parseInt(tableId),
+        items: cart.map(cartItem => ({
+          menu_id: cartItem.item.id,
+          quantity: cartItem.quantity,
+          unit_price: cartItem.item.price,
+          subtotal: cartItem.item.price * cartItem.quantity
+        })),
+        total: getTotalPrice()
+      };
+    
+      // Send the order data to the backend
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        showToast('Commande confirmée ! Merci pour votre achat 🎉', 'success');
+        cart = [];
+        closeTableModal();
+        closeCartDrawer();
+        renderMenu();
+        updateCartBar();
+      })
+      .catch(error => {
+        console.error('Error placing order:', error);
+        showToast('Erreur lors de la commande', 'error');
+      });
+    }
+
+    function initTableModal() {
+      // Styles pour la modale
+      const style = document.createElement('style');
+      style.textContent = `
+        .modal-overlay {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(0,0,0,0.5); z-index: 2000;
+          display: none; justify-content: center; align-items: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-card {
+          background: white; padding: 2rem; border-radius: 1rem;
+          width: 90%; max-width: 400px; text-align: center;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .table-input {
+          width: 100%; padding: 0.75rem; margin: 1rem 0;
+          border: 1px solid #ddd; border-radius: 0.5rem;
+          font-size: 1.1rem; text-align: center;
+        }
+        .modal-actions { display: flex; gap: 1rem; justify-content: center; }
+        .btn-confirm { background: #f97316; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
+        .btn-cancel { background: #e5e7eb; color: #374151; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
+      `;
+      document.head.appendChild(style);
+
+      // HTML pour la modale
+      const modalHTML = `
+        <div id="tableModal" class="modal-overlay">
+          <div class="modal-card">
+            <h3>Numéro de table</h3>
+            <p>Veuillez entrer votre numéro de table</p>
+            <input type="number" id="tableNumberInput" class="table-input" placeholder="Ex: 5" min="1">
+            <div class="modal-actions">
+              <button class="btn-cancel" onclick="closeTableModal()">Annuler</button>
+              <button class="btn-confirm" onclick="submitOrder()">Valider</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    function openTableModal() {
+      document.getElementById('tableModal').classList.add('visible');
+      setTimeout(() => document.getElementById('tableNumberInput').focus(), 100);
+    }
+
+    function closeTableModal() {
+      document.getElementById('tableModal').classList.remove('visible');
+      document.getElementById('tableNumberInput').value = '';
     }
 
     function getTotalItems() {
@@ -133,7 +232,7 @@
                 <p class="card-description">${item.description}</p>
               </div>
               <div class="card-footer">
-                <span class="card-price">${item.price.toFixed(2)} €</span>
+                <span class="card-price">${item.price.toFixed(2)} fbu</span>
                 ${quantity === 0 ? `
                   <button class="add-btn" onclick="addToCart(${JSON.stringify(item).replace(/"/g, '&quot;')})">
                     ${icons.plus}
@@ -198,7 +297,7 @@
                   </div>
                 </div>
                 <div class="cart-item-right">
-                  <p class="cart-item-total">${(cartItem.item.price * cartItem.quantity).toFixed(2)} €</p>
+                  <p class="cart-item-total">${(cartItem.item.price * cartItem.quantity).toFixed(2)} fbu</p>
                   <button class="delete-btn" onclick="removeItemCompletely(${cartItem.item.id})">
                     ${icons.trash}
                   </button>
@@ -227,7 +326,7 @@
       if (totalItems > 0) {
         cartBar.classList.add('visible');
         document.getElementById('cartItemsCount').textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
-        document.getElementById('cartTotalPrice').textContent = `${totalPrice.toFixed(2)} €`;
+        document.getElementById('cartTotalPrice').textContent = `${totalPrice.toFixed(2)} fbu`;
       } else {
         cartBar.classList.remove('visible');
       }
@@ -300,3 +399,4 @@
     loadMenuFromAPI();
     renderCategories();
     updateCartBar();
+    initTableModal();
