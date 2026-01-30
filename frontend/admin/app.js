@@ -1,6 +1,7 @@
 
         // Data
         let orders = [];
+        let isFirstLoad = true;
 
         let menuItems = [];
         let invoices = [];
@@ -38,6 +39,17 @@
                 const res = await fetch("/api/orders");
                 const data = await res.json();
                 
+                // Détecter les nouvelles commandes pour la notification sonore
+                if (!isFirstLoad) {
+                    const currentIds = new Set(orders.map(o => o.id));
+                    const newOrders = data.filter(o => !currentIds.has(o.id));
+                    
+                    if (newOrders.length > 0) {
+                        playNotificationSound();
+                        showToast(`🔔 ${newOrders.length} nouvelle(s) commande(s) !`);
+                    }
+                }
+
                 // Adapter les données backend -> frontend
                 orders = data.map(order => ({
                     id: order.id,
@@ -48,6 +60,7 @@
                     time: new Date(order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                 }));
 
+                isFirstLoad = false;
                 renderOrders();
             } catch (error) {
                 console.error("Erreur chargement commandes :", error);
@@ -92,6 +105,29 @@
             document.getElementById('toast-message').textContent = message;
             toast.classList.add('active');
             setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+
+        function playNotificationSound() {
+            // Créer un contexte audio pour un son "Ding" agréable
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime); // Do (C5)
+            osc.frequency.exponentialRampToValueAtTime(1046.5, ctx.currentTime + 0.1); // Monte d'une octave
+            
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
         }
 
         // Orders Functions
@@ -171,34 +207,97 @@
             `;
         }
 
-        function updateOrderStatus(orderId, status) {
-            const order = orders.find(o => o.id === orderId);
-            if (!order) return;
-
-            order.status = status;
-
-            if (status === 'served') {
-                const now = new Date();
-                const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(invoiceCounter).padStart(4, '0')}`;
-                
-                invoices.unshift({
-                    id: invoiceCounter,
-                    invoiceNumber,
-                    tableNumber: order.tableNumber,
-                    items: order.items,
-                    totalPrice: order.totalPrice,
-                    date: now.toLocaleDateString('fr-FR'),
-                    time: order.time
+ async function updateOrderStatus(orderId, status) {
+            try {
+                // Appel API pour mettre à jour le statut
+                const res = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
                 });
-                
-                invoiceCounter++;
-                showToast(`Facture ${invoiceNumber} générée automatiquement`);
-                renderInvoices();
-            }
 
-            const statusText = status === 'preparing' ? 'en préparation' : 'servie';
-            showToast(`Commande #${orderId} passée ${statusText}`);
-            renderOrders();
+                if (!res.ok) throw new Error('Erreur serveur');
+
+                // Mise à jour locale et gestion de la facture
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    order.status = status;
+
+                    if (status === 'served') {
+                        const now = new Date();
+                        const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(invoiceCounter).padStart(4, '0')}`;
+                        
+                        invoices.unshift({
+                            id: invoiceCounter,
+                            invoiceNumber,
+                            tableNumber: order.tableNumber,
+                            items: order.items,
+                            totalPrice: order.totalPrice,
+                            date: now.toLocaleDateString('fr-FR'),
+                            time: order.time
+                        });
+                        
+                        invoiceCounter++;
+                        showToast(`Facture  générée automatiquement`);
+                        renderInvoices();
+                    }
+                }
+
+                const statusText = status === 'preparing' ? 'en préparation' : 'servie';
+                showToast(`Commande # passée `);
+                
+                // Recharger les commandes pour synchroniser
+                loadOrdersFromAPI();
+            } catch (error) {
+                console.error(error);
+                showToast("Impossible de mettre à jour le statut", "error");
+            }
+        }
+        async function updateOrderStatus(orderId, status) {
+            try {
+                // Appel API pour mettre à jour le statut
+                const res = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (!res.ok) throw new Error('Erreur serveur');
+
+                // Mise à jour locale et gestion de la facture
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    order.status = status;
+
+                    if (status === 'served') {
+                        const now = new Date();
+                        const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(invoiceCounter).padStart(4, '0')}`;
+                        
+                        invoices.unshift({
+                            id: invoiceCounter,
+                            invoiceNumber,
+                            tableNumber: order.tableNumber,
+                            items: order.items,
+                            totalPrice: order.totalPrice,
+                            date: now.toLocaleDateString('fr-FR'),
+                            time: order.time
+                        });
+                        
+                        invoiceCounter++;
+                        showToast(`Facture ${invoiceNumber} générée automatiquement`);
+                        renderInvoices();
+                    }
+                }
+
+                const statusText = status === 'preparing' ? 'en préparation' : 'servie';
+                showToast(`Commande #${orderId} passée ${statusText}`);
+                
+                // Recharger les commandes pour synchroniser
+                loadOrdersFromAPI();
+            } catch (error) {
+                console.error(error);
+                showToast("Impossible de mettre à jour le statut", "error");
+            }
         }
 
         // Menu Functions

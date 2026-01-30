@@ -31,6 +31,11 @@
     // State
     let cart = [];
     let selectedCategory = 'Tous';
+    let activeOrderId = null;
+    let pollingInterval = null;
+    let lastOrderStatus = null;
+    let audioCtx = null;
+    let tableIdFromUrl = null;
 
     // Icons SVG
     const icons = {
@@ -100,17 +105,37 @@
     }
 
     function handleOrder() {
-      if (cart.length === 0) return;
-      openTableModal();
+      if (cart.length === 0) {
+        showToast('Votre panier est vide', 'info');
+        return;
+      }
+
+      if (tableIdFromUrl) {
+        // Si l'ID de la table vient du QR code, on commande directement
+        submitOrder(tableIdFromUrl);
+      } else {
+        // Sinon, on demande le numéro de table
+        openTableModal();
+      }
     }
 
-    function submitOrder() {
-      const tableInput = document.getElementById('tableNumberInput');
-      const tableId = tableInput.value;
+    function submitOrder(prefilledTableId = null) {
+      // Initialiser l'audio sur l'interaction utilisateur (clic bouton)
+      initAudio();
 
-      if (!tableId) {
-        showToast('Veuillez entrer un numéro de table', 'error');
-        return;
+      let tableId;
+
+      if (prefilledTableId) {
+        tableId = prefilledTableId;
+      } else {
+        // Cas où la modale est utilisée
+        const tableInput = document.getElementById('tableNumberInput');
+        tableId = tableInput.value;
+
+        if (!tableId || parseInt(tableId) <= 0) {
+          showToast('Veuillez entrer un numéro de table valide', 'error');
+          return;
+        }
       }
 
       // Prepare the order data
@@ -142,15 +167,93 @@
       .then(data => {
         showToast('Commande confirmée ! Merci pour votre achat 🎉', 'success');
         cart = [];
-        closeTableModal();
+        if (!prefilledTableId) {
+          closeTableModal();
+        }
         closeCartDrawer();
         renderMenu();
         updateCartBar();
+        
+        if (data.id) {
+            startOrderPolling(data.id);
+        }
       })
       .catch(error => {
         console.error('Error placing order:', error);
         showToast('Erreur lors de la commande', 'error');
       });
+    }
+
+    function startOrderPolling(orderId) {
+      if (pollingInterval) clearInterval(pollingInterval);
+      lastOrderStatus = 'PENDING';
+      
+      // Vérifier le statut toutes les 3 secondes
+      pollingInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/orders/${orderId}`);
+          if (!res.ok) return;
+          const order = await res.json();
+          
+          if (order.status === 'PREPARING' && lastOrderStatus !== 'PREPARING') {
+            playNotificationSound();
+            showToast('👨‍🍳 Votre commande est en préparation !', 'success');
+            lastOrderStatus = 'PREPARING';
+          } else if (order.status === 'SERVED' && lastOrderStatus !== 'SERVED') {
+            playNotificationSound();
+            showToast('✅ Votre commande est servie ! Bon appétit !', 'success');
+            lastOrderStatus = 'SERVED';
+            clearInterval(pollingInterval); // Arrêter de vérifier une fois servi
+          }
+        } catch (err) {
+          console.error("Erreur polling", err);
+        }
+      }, 3000);
+    }
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playNotificationSound() {
+      if (!audioCtx) initAudio();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      // Son de notification (Ding)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // Do (C5)
+      osc.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.1); // Monte d'une octave
+      
+      // Volume plus fort
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function getTableIdFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tableId = urlParams.get('table');
+      if (tableId && !isNaN(parseInt(tableId))) {
+        console.log(`Table ID ${tableId} détecté depuis l'URL.`);
+        return parseInt(tableId);
+      }
+      return null;
     }
 
     function initTableModal() {
@@ -396,6 +499,10 @@
     }
 
     // Initialize
+    tableIdFromUrl = getTableIdFromURL();
+    if (tableIdFromUrl) {
+      setTimeout(() => showToast(`Bienvenue à la table ${tableIdFromUrl} ! 👋`, 'success'), 500);
+    }
     loadMenuFromAPI();
     renderCategories();
     updateCartBar();

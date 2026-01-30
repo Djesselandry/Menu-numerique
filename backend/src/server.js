@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const pool = require('./config/db');
+const os = require('os');
 const menuRoutes = require('./routes/menuRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const app = express();
@@ -50,5 +51,16 @@ app.get('/', (req, res) => {
 });
 */
 app.listen(PORT, () => {
-  console.log(`🌐 Serveur lancé sur http://localhost:${PORT}`);
+  // Récupérer l'adresse IP locale pour faciliter la création des QR codes
+  const interfaces = os.networkInterfaces();
+  let localIp = 'localhost';
+  Object.keys(interfaces).forEach((ifname) => {
+    interfaces[ifname].forEach((iface) => {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address;
+      }
+    });
+  });
+  console.log(`🌐 Serveur lancé sur http://${localIp}:${PORT}`);
 });
+  

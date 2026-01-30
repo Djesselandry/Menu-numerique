@@ -61,8 +61,25 @@ const getAllOrders = async () => {
     return result.rows;
 };
 
+const updateOrderStatus = async (id, status) => {
+  const result = await pool.query(
+    `UPDATE orders 
+     SET status = $1 
+     WHERE id = $2 
+     RETURNING id, table_id, total, status, created_at`,
+    [status.toUpperCase(), id]
+  );
+  return result.rows[0];
+};
+
+const getOrderById = async (id) => {
+  const result = await pool.query('SELECT id, status FROM orders WHERE id = $1', [id]);
+  return result.rows[0];
+};
 
 module.exports = {
   createOrderWithItems,
   getAllOrders,
+  updateOrderStatus,
+  getOrderById,
 };
