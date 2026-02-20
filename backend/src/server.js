@@ -3,8 +3,20 @@ const express = require('express');
 const path = require('path');
 const pool = require('./config/db');
 const menuRoutes = require('./routes/menuRoutes');
+const authRoutes = require('./routes/authRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Middleware CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Middleware
 app.use(express.json());
@@ -17,6 +29,7 @@ app.use(express.static(path.join(__dirname, '../../frontend/client')));
 app.use("/admin", express.static(path.join(__dirname, '../../frontend/admin')));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes)
 
 // servir index.html pour les routes non-API
