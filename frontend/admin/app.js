@@ -1,4 +1,128 @@
+        // ===== AUTHENTICATION SYSTEM =====
+        const AUTH_TOKEN_KEY = 'adminToken';
+        const API_URL = 'http://localhost:5000/api';
 
+        // Authentication Elements
+        const loginScreen = document.getElementById('login-screen');
+        const dashboard = document.getElementById('dashboard');
+        const loginForm = document.getElementById('login-form');
+        const loginUsernameInput = document.getElementById('login-username');
+        const loginPasswordInput = document.getElementById('login-password');
+        const loginSubmitBtn = document.getElementById('login-submit-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginError = document.getElementById('login-error');
+
+        // Auth initialization
+        function initializeAuth() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (token) {
+                showDashboard();
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        function showLoginScreen() {
+            loginScreen.classList.add('active');
+            dashboard.classList.remove('active');
+        }
+
+        function showDashboard() {
+            loginScreen.classList.remove('active');
+            dashboard.classList.add('active');
+        }
+
+        // Handle login form submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = loginUsernameInput.value.trim();
+            const password = loginPasswordInput.value.trim();
+            
+            if (!username || !password) {
+                showLoginError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            loginSubmitBtn.disabled = true;
+            loginSubmitBtn.textContent = 'Connexion en cours...';
+            loginError.classList.remove('show');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showLoginError(data.error || 'Erreur de connexion');
+                    loginSubmitBtn.disabled = false;
+                    loginSubmitBtn.textContent = 'Se connecter';
+                    return;
+                }
+
+                // Save token to localStorage
+                localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+                
+                // Clear form
+                loginUsernameInput.value = '';
+                loginPasswordInput.value = '';
+                loginError.classList.remove('show');
+                
+                // Show dashboard
+                showDashboard();
+                
+                // Reset button
+                loginSubmitBtn.disabled = false;
+                loginSubmitBtn.textContent = 'Se connecter';
+            } catch (err) {
+                console.log('Erreur:', err);
+                showLoginError('Erreur de connexion au serveur');
+                loginSubmitBtn.disabled = false;
+                loginSubmitBtn.textContent = 'Se connecter';
+            }
+        });
+
+        // Handle logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                const token = localStorage.getItem(AUTH_TOKEN_KEY);
+                
+                if (token) {
+                    await fetch(`${API_URL}/auth/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Erreur lors de la déconnexion:', err);
+            } finally {
+                // Clear token regardless of API response
+                localStorage.removeItem(AUTH_TOKEN_KEY);
+                
+                // Reset form and show login screen
+                loginUsernameInput.value = '';
+                loginPasswordInput.value = '';
+                loginError.classList.remove('show');
+                
+                showLoginScreen();
+            }
+        });
+
+        function showLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.add('show');
+        }
+
+        // ===== DASHBOARD CODE =====
         // Data
         let orders = [
             {
@@ -68,6 +192,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            initializeAuth();
             updateDate();
             setupTabs();
             loadMenuFromAPI();

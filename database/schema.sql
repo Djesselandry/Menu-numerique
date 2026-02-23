@@ -4,6 +4,19 @@
 -- =====================================================
 
 -- -------------------------
+-- TABLE : users (Admin authentication)
+-- -------------------------
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(100),
+  role VARCHAR(20) DEFAULT 'admin' CHECK (role IN ('admin', 'manager', 'staff')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- -------------------------
 -- TABLE : tables
 -- -------------------------
 CREATE TABLE IF NOT EXISTS tables (

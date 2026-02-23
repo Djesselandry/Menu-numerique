@@ -1,0 +1,78 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Restaurant - Static</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Login Screen -->
+    <main id="login-screen" class="centered">
+      <div class="card">
+        <div class="logo">🍽️</div>
+        <h1>Dashboard Restaurant</h1>
+        <p>Connectez-vous pour accéder à l'interface admin</p>
+
+        <form id="login-form">
+          <label>Nom d'utilisateur
+            <input id="username" type="text" placeholder="admin" />
+          </label>
+          <label>Mot de passe
+            <input id="password" type="password" placeholder="admin" />
+          </label>
+          <button type="submit" class="primary">Se connecter</button>
+        </form>
+
+        <div class="demo">Démo: <strong>admin</strong> / <strong>admin</strong></div>
+      </div>
+    </main>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+      <header class="topbar">
+        <div class="brand">🍽️ Dashboard Restaurant</div>
+        <div class="actions">
+          <button id="logoutBtn" class="ghost">Se déconnecter</button>
+        </div>
+      </header>
+
+      <div class="container">
+        <aside class="sidebar">
+          <nav>
+            <button class="tab active" data-tab="invoices">Factures</button>
+            <button class="tab" data-tab="menu">Menu</button>
+            <button class="tab" data-tab="orders">Commandes</button>
+          </nav>
+        </aside>
+
+        <section class="content">
+          <div id="invoices" class="tab-panel">
+            <h2>Gestion des factures</h2>
+            <div id="invoice-list" class="list"></div>
+          </div>
+
+          <div id="menu" class="tab-panel hidden">
+            <h2>Gestion du menu</h2>
+            <div id="menu-list" class="grid"></div>
+          </div>
+
+          <div id="orders" class="tab-panel hidden">
+            <h2>Commandes récentes</h2>
+            <div id="orders-list" class="list"></div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">© 2026 Dashboard Restaurant</footer>
+    </div>
+
+    <!-- Simple toast container -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
