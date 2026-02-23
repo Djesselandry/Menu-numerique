@@ -2,6 +2,9 @@
         const AUTH_TOKEN_KEY = 'adminToken';
         const API_URL = 'http://localhost:5000/api';
 
+        // Socket.io initialization
+        const socket = io();
+
         // Authentication Elements
         const loginScreen = document.getElementById('login-screen');
         const dashboard = document.getElementById('dashboard');
@@ -124,42 +127,7 @@
 
         // ===== DASHBOARD CODE =====
         // Data
-        let orders = [
-            {
-                id: 1,
-                tableNumber: 5,
-                items: [
-                    { name: 'Burger Classique', quantity: 2, price: 12.90 },
-                    { name: 'Pizza Margherita', quantity: 1, price: 11.50 }
-                ],
-                totalPrice: 37.30,
-                status: 'pending',
-                time: '14:30'
-            },
-            {
-                id: 2,
-                tableNumber: 12,
-                items: [
-                    { name: 'Pasta Carbonara', quantity: 1, price: 13.90 },
-                    { name: 'Salade César', quantity: 1, price: 10.90 },
-                    { name: 'Tiramisu Maison', quantity: 2, price: 6.50 }
-                ],
-                totalPrice: 37.80,
-                status: 'preparing',
-                time: '14:25'
-            },
-            {
-                id: 3,
-                tableNumber: 8,
-                items: [
-                    { name: 'Sushi Deluxe', quantity: 2, price: 16.90 }
-                ],
-                totalPrice: 33.80,
-                status: 'served',
-                time: '14:15'
-            }
-        ];
-
+        let orders = [];
         let menuItems = [];
         let invoices = [];
         let invoiceCounter = 1;
@@ -196,7 +164,7 @@
             updateDate();
             setupTabs();
             loadMenuFromAPI();
-            renderOrders();
+            loadOrders();
             renderInvoices();
             setupSearch();
         });
@@ -220,7 +188,53 @@
             });
         }
 
-        function showToast(message) {
+        // Fonction pour jouer un son de notification
+        function playNotificationSound(type = 'success') {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                
+                if (type === 'success') {
+                    // Son de succès: deux bips montants
+                    const osc1 = audioContext.createOscillator();
+                    const osc2 = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioContext.destination);
+                    
+                    osc1.frequency.setValueAtTime(800, now);
+                    osc2.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    
+                    osc1.start(now);
+                    osc2.start(now + 0.1);
+                    osc1.stop(now + 0.15);
+                    osc2.stop(now + 0.3);
+                } else if (type === 'error') {
+                    // Son d'erreur: bip grave
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    
+                    osc.frequency.setValueAtTime(300, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch (err) {
+                console.log('Son non disponible');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            playNotificationSound(type);
+            
             const toast = document.getElementById('toast');
             document.getElementById('toast-message').textContent = message;
             toast.classList.add('active');
@@ -229,15 +243,15 @@
 
         // Orders Functions
         function renderOrders() {
-            const activeOrders = orders.filter(o => o.status !== 'served');
-            const servedOrders = orders.filter(o => o.status === 'served');
+            const activeOrders = orders.filter(o => o.status !== 'SERVED' && o.status !== 'ARCHIVED');
+            const servedOrders = orders.filter(o => o.status === 'SERVED' || o.status === 'ARCHIVED');
             
             document.getElementById('active-orders-count').textContent = activeOrders.length;
             
             const ordersGrid = document.getElementById('orders-grid');
             ordersGrid.innerHTML = activeOrders.length === 0 
-                ? '<div class="empty-state card"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p>Aucune commande active</p></div>'
-                : activeOrders.map(order => createOrderCard(order)).join('');
+                ? '<div class="empty-state card"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p>Aucune commande en attente</p></div>'
+                : activeOrders.map(order => createOrderCard(order, false)).join('');
             
             const servedSection = document.getElementById('served-orders-section');
             if (servedOrders.length > 0) {
@@ -248,6 +262,7 @@
                 servedSection.style.display = 'none';
             }
         }
+
 
         function createOrderCard(order, isServed = false) {
             const statusClass = {
@@ -287,7 +302,7 @@
                         ${order.items.map(item => `
                             <div class="order-item">
                                 <span style="font-weight: 500;">${item.quantity}x ${item.name}</span>
-                                <span style="color: #6b7280;">${(item.quantity * item.price).toFixed(2)} €</span>
+                                <span style="color: #6b7280;">${(item.quantity * item.price).toFixed(2)} fbu</span>
                             </div>
                         `).join('')}
                     </div>
@@ -370,7 +385,7 @@
                     <div class="menu-item-content">
                         <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.25rem;">${item.name}</h3>
                         <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.description}</p>
-                        <p style="color: #f97316; font-weight: bold; font-size: 1.125rem; margin: 0.5rem 0;">${item.price.toFixed(2)} €</p>
+                        <p style="color: #f97316; font-weight: bold; font-size: 1.125rem; margin: 0.5rem 0;">${item.price.toFixed(2)} fbu</p>
                         <span class="badge" style="border: 1px solid #e5e7eb; background: white; color: #6b7280; font-size: 0.75rem;">${item.category}</span>
                         
                         <div style="display: flex; align-items: center; justify-content: space-between; margin: 0.75rem 0; padding: 0.5rem; background: #f9fafb; border-radius: 0.5rem;">
@@ -607,7 +622,7 @@
                         <div style="text-align: right;">
                             <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Total</p>
                             <p style="font-size: 1.875rem; font-weight: bold; color: #f97316;">
-                                ${invoice.totalPrice.toFixed(2)} €
+                                ${invoice.totalPrice.toFixed(2)} fbu
                             </p>
                         </div>
                     </div>
@@ -621,7 +636,7 @@
                                         <span style="font-weight: 500;">${item.quantity}x</span> ${item.name}
                                     </span>
                                     <span style="color: #6b7280; font-weight: 500;">
-                                        ${(item.quantity * item.price).toFixed(2)} €
+                                        ${(item.quantity * item.price).toFixed(2)} fbu
                                     </span>
                                 </div>
                             `).join('')}
@@ -718,12 +733,12 @@
                                     <td>${item.name}</td>
                                     <td style="text-align: center;">${item.quantity}</td>
                                     <td style="text-align: right;">${item.price.toFixed(2)} €</td>
-                                    <td style="text-align: right;">${(item.quantity * item.price).toFixed(2)} €</td>
+                                    <td style="text-align: right;">${(item.quantity * item.price).toFixed(2)} fbu</td>
                                 </tr>
                             `).join('')}
                             <tr class="total-row">
                                 <td colspan="3" style="text-align: right; color: #f97316;">TOTAL</td>
-                                <td style="text-align: right; color: #f97316;">${invoice.totalPrice.toFixed(2)} €</td>
+                                <td style="text-align: right; color: #f97316;">${invoice.totalPrice.toFixed(2)} fbu</td>
                             </tr>
                         </tbody>
                     </table>
@@ -754,3 +769,183 @@
         document.getElementById('menu-modal').addEventListener('click', (e) => {
             if (e.target.id === 'menu-modal') closeMenuModal();
         });
+
+        // ===== ORDERS FUNCTIONS =====
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_URL}/orders`);
+                if (!response.ok) throw new Error('Erreur chargement commandes');
+                
+                const data = await response.json();
+                orders = data.map(order => ({
+                    id: order.id,
+                    tableNumber: order.table_number,
+                    status: order.status,
+                    totalPrice: Number(order.total),
+                    itemCount: order.item_count || 0,
+                    time: new Date(order.created_at).toLocaleTimeString('fr-FR'),
+                    items: [] // Will be filled when fetching details
+                }));
+                
+                // Charger les détails de chaque commande
+                for (let order of orders) {
+                    const details = await loadOrderDetails(order.id);
+                    if (details && details.items) {
+                        order.items = details.items.filter(item => item !== null);
+                    }
+                }
+                
+                renderOrders();
+            } catch (err) {
+                console.error('Erreur chargement commandes:', err);
+            }
+        }
+
+        async function loadOrderDetails(orderId) {
+            try {
+                const response = await fetch(`${API_URL}/orders/${orderId}`);
+                if (!response.ok) throw new Error('Erreur chargement détails');
+                
+                const data = await response.json();
+                return data;
+            } catch (err) {
+                console.error('Erreur:', err);
+                return null;
+            }
+        }
+
+        function createOrderCard(order, isServed = false) {
+            const statusColors = {
+                'PENDING': { bg: '#fef3c7', text: '#92400e', label: 'En attente' },
+                'PREPARING': { bg: '#dbeafe', text: '#1e40af', label: 'En préparation' },
+                'SERVED': { bg: '#dcfce7', text: '#15803d', label: 'Servie' },
+                'ARCHIVED': { bg: '#f3f4f6', text: '#4b5563', label: 'Archivée' }
+            };
+            
+            const statusInfo = statusColors[order.status] || statusColors['PENDING'];
+            
+            const actionButtons = !isServed
+                ? (order.status === 'PENDING'
+                    ? `<button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="updateOrderStatus(${order.id}, 'PREPARING')">Commencer la préparation</button>`
+                    : order.status === 'PREPARING'
+                    ? `<button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="updateOrderStatus(${order.id}, 'SERVED')">Marquer comme servie</button>`
+                    : '')
+                : '';
+            
+            const itemsHTML = order.items && order.items.length > 0
+                ? order.items.map(item => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f9fafb; border-radius: 0.375rem; margin-bottom: 0.5rem;">
+                        <div style="flex: 1;">
+                            <p style="font-weight: 500; color: #111827; margin: 0;">${item.quantity}x ${item.name}</p>
+                        </div>
+                        <p style="font-weight: 600; color: #f97316; margin: 0;">${(item.subtotal || 0).toFixed(2)} fbu</p>
+                    </div>
+                `).join('')
+                : '<p style="color: #9ca3af; font-size: 0.875rem; margin: 0;">Aucun article</p>';
+            
+            return `
+                <div class="card" style="${isServed ? 'opacity: 0.8; background: #f9fafb;' : ''}">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.25rem;">
+                        <div>
+                            <h3 style="font-size: 1.375rem; font-weight: 700; color: #111827; margin: 0;">Table ${order.tableNumber}</h3>
+                            <p style="font-size: 0.8rem; color: #6b7280; margin: 0.25rem 0 0 0;">🕐 ${order.time}</p>
+                        </div>
+                        <div style="background: ${statusInfo.bg}; color: ${statusInfo.text}; padding: 0.5rem 0.875rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.8125rem; white-space: nowrap;">
+                            ${statusInfo.label}
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fff9f5; border: 1px solid #fed7aa; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                        <p style="font-size: 0.8125rem; font-weight: 600; color: #92400e; margin: 0 0 0.75rem 0; text-transform: uppercase;">📦 Articles (${order.itemCount})</p>
+                        ${itemsHTML}
+                    </div>
+                    
+                    <div style="border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #374151; font-size: 0.95rem;">TOTAL</span>
+                            <span style="font-size: 1.5rem; font-weight: 700; color: ${isServed ? '#6b7280' : '#f97316'};">
+                                ${order.totalPrice.toFixed(2)} fbu
+                            </span>
+                        </div>
+                    </div>
+                    
+                    ${actionButtons}
+                </div>
+            `;
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!response.ok) throw new Error('Erreur mise à jour');
+
+                const statusTexts = {
+                    'PREPARING': 'en préparation',
+                    'SERVED': 'servie'
+                };
+                
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    order.status = newStatus;
+                    
+                    // Émettre les événements socket.io
+                    if (newStatus === 'PREPARING') {
+                        socket.emit('order_preparing', {
+                            order_id: orderId,
+                            table_number: order.tableNumber,
+                            status: newStatus
+                        });
+                    } else if (newStatus === 'SERVED') {
+                        socket.emit('order_served', {
+                            order_id: orderId,
+                            table_number: order.tableNumber,
+                            status: newStatus
+                        });
+                        
+                        // Générer automatiquement une facture
+                        generateInvoice(order);
+                    }
+                }
+                
+                showToast(`✓ Table ${orders.find(o => o.id === orderId)?.tableNumber} ${statusTexts[newStatus]}`, 'success');
+                loadOrders(); // Rafraîchir les commandes
+            } catch (err) {
+                console.error('Erreur:', err);
+                showToast('Erreur lors de la mise à jour', 'error');
+            }
+        }
+
+        function generateInvoice(order) {
+            const now = new Date();
+            const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(invoiceCounter).padStart(4, '0')}`;
+            
+            const invoice = {
+                id: invoiceCounter,
+                invoiceNumber,
+                tableNumber: order.tableNumber,
+                items: order.items || [],
+                totalPrice: order.totalPrice,
+                date: now.toLocaleDateString('fr-FR'),
+                time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            invoices.unshift(invoice);
+            invoiceCounter++;
+            
+            showToast(`📄 Facture ${invoice.invoiceNumber} générée automatiquement`);
+            renderInvoices();
+        }
+
+        // Socket.io event listeners
+        socket.on('new_order_notification', (data) => {
+            showToast(`🔔 NOUVELLE COMMANDE! Table ${data.table_number} - ${data.items.length} article(s) - ${data.total?.toFixed(2) || 0} fbu`, 'success');
+            loadOrders(); // Charger les nouvelles commandes immédiatement
+        });
+
+        // Auto-refresh orders every 3 seconds
+        setInterval(loadOrders, 3000);

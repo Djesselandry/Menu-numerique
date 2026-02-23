@@ -1,4 +1,7 @@
 
+    // Socket.io initialization
+    const socket = io();
+    
     // Data
     async function loadMenuFromAPI() {
   try {
@@ -31,6 +34,7 @@
     // State
     let cart = [];
     let selectedCategory = 'Tous';
+    let currentTableNumber = null;
 
     // Icons SVG
     const icons = {
@@ -100,12 +104,89 @@
     }
 
     function handleOrder() {
-      showToast('Commande confirmée ! Merci pour votre achat 🎉', 'success');
-      cart = [];
-      closeCartDrawer();
-      renderMenu();
-      updateCartBar();
+      // Ouvrir le modal pour demander le numéro de table
+      openTableModal();
     }
+
+    function openTableModal() {
+      document.getElementById('tableModal').classList.add('visible');
+      document.getElementById('overlay').classList.add('visible');
+      document.getElementById('tableNumberInput').value = '';
+      document.getElementById('tableNumberInput').focus();
+    }
+
+    function closeTableModal() {
+      document.getElementById('tableModal').classList.remove('visible');
+      document.getElementById('overlay').classList.remove('visible');
+    }
+
+    async function submitOrder() {
+      const tableNumber = parseInt(document.getElementById('tableNumberInput').value, 10);
+      
+      if (!tableNumber || tableNumber <= 0) {
+        showToast('Veuillez entrer un numéro de table valide', 'error');
+        return;
+      }
+
+      try {
+        // Préparer les données de la commande
+        const orderData = {
+          tableNumber: tableNumber,
+          items: cart.map(cartItem => ({
+            id: cartItem.item.id,
+            name: cartItem.item.name,
+            price: cartItem.item.price,
+            quantity: cartItem.quantity
+          }))
+        };
+
+        // Envoyer la commande au serveur
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la soumission de la commande');
+        }
+
+        const result = await response.json();
+        
+        currentTableNumber = tableNumber;
+        closeTableModal();
+        closeCartDrawer();
+        cart = [];
+        renderMenu();
+        updateCartBar();
+        
+        // Émettre l'événement socket pour notifier l'admin
+        socket.emit('new_order', {
+          table_number: tableNumber,
+          items: orderData.items,
+          total: result.total || orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        });
+        
+        showToast(`✓ Commande confirmée pour la table ${tableNumber}!`, 'success');
+      } catch (error) {
+        console.error('Erreur:', error);
+        showToast('Erreur lors de la soumission de la commande', 'error');
+      }
+    }
+
+    // Permettre Enter pour soumettre le formulaire
+    document.addEventListener('DOMContentLoaded', () => {
+      const tableInput = document.getElementById('tableNumberInput');
+      if (tableInput) {
+        tableInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            submitOrder();
+          }
+        });
+      }
+    });
 
     function getTotalItems() {
       return cart.reduce((sum, cartItem) => sum + cartItem.quantity, 0);
@@ -133,7 +214,7 @@
                 <p class="card-description">${item.description}</p>
               </div>
               <div class="card-footer">
-                <span class="card-price">${item.price.toFixed(2)} €</span>
+                <span class="card-price">${item.price.toFixed(2)} fbu</span>
                 ${quantity === 0 ? `
                   <button class="add-btn" onclick="addToCart(${JSON.stringify(item).replace(/"/g, '&quot;')})">
                     ${icons.plus}
@@ -186,7 +267,7 @@
                 <img src="${cartItem.item.image}" alt="${cartItem.item.name}" class="cart-item-image">
                 <div class="cart-item-info">
                   <h3 class="cart-item-name">${cartItem.item.name}</h3>
-                  <p class="cart-item-price">${cartItem.item.price.toFixed(2)} €</p>
+                  <p class="cart-item-price">${cartItem.item.price.toFixed(2)} fbu</p>
                   <div class="cart-quantity-controls">
                     <button class="quantity-btn-sm" onclick="removeFromCart(${cartItem.item.id})">
                       ${icons.minus}
@@ -198,7 +279,7 @@
                   </div>
                 </div>
                 <div class="cart-item-right">
-                  <p class="cart-item-total">${(cartItem.item.price * cartItem.quantity).toFixed(2)} €</p>
+                  <p class="cart-item-total">${(cartItem.item.price * cartItem.quantity).toFixed(2)} fbu</p>
                   <button class="delete-btn" onclick="removeItemCompletely(${cartItem.item.id})">
                     ${icons.trash}
                   </button>
@@ -212,7 +293,7 @@
         footer.innerHTML = `
           <div class="total-row">
             <span class="total-label">Total</span>
-            <span class="total-amount">${total.toFixed(2)} €</span>
+            <span class="total-amount">${total.toFixed(2)} fbu</span>
           </div>
           <button class="order-btn" onclick="handleOrder()">Commander maintenant</button>
         `;
@@ -227,7 +308,7 @@
       if (totalItems > 0) {
         cartBar.classList.add('visible');
         document.getElementById('cartItemsCount').textContent = `${totalItems} article${totalItems > 1 ? 's' : ''}`;
-        document.getElementById('cartTotalPrice').textContent = `${totalPrice.toFixed(2)} €`;
+        document.getElementById('cartTotalPrice').textContent = `${totalPrice.toFixed(2)} fbu`;
       } else {
         cartBar.classList.remove('visible');
       }
@@ -284,7 +365,53 @@
       closeNavDrawer();
     }
 
+    // Fonction pour jouer un son de notification
+    function playNotificationSound(type = 'success') {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioContext.currentTime;
+        
+        if (type === 'success') {
+          // Son de succès: deux bips montants
+          const osc1 = audioContext.createOscillator();
+          const osc2 = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(audioContext.destination);
+          
+          osc1.frequency.setValueAtTime(800, now);
+          osc2.frequency.setValueAtTime(1200, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          
+          osc1.start(now);
+          osc2.start(now + 0.1);
+          osc1.stop(now + 0.15);
+          osc2.stop(now + 0.3);
+        } else if (type === 'error') {
+          // Son d'erreur: bip grave
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          
+          osc.frequency.setValueAtTime(300, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      } catch (err) {
+        console.log('Son non disponible');
+      }
+    }
+
     function showToast(message, type = 'success') {
+      playNotificationSound(type);
+      
       const toast = document.getElementById('toast');
       const toastMessage = document.getElementById('toastMessage');
       
@@ -295,6 +422,19 @@
         toast.classList.remove('visible');
       }, 3000);
     }
+
+    // Socket.io event listeners
+    socket.on('order_preparing_notification', (data) => {
+      if (data.table_number === currentTableNumber) {
+        showToast('🍳 Votre commande est en préparation!', 'success');
+      }
+    });
+
+    socket.on('order_served_notification', (data) => {
+      if (data.table_number === currentTableNumber) {
+        showToast('✅ Votre commande est prête! À venir chercher!', 'success');
+      }
+    });
 
     // Initialize
     loadMenuFromAPI();
