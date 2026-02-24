@@ -75,7 +75,7 @@ const getActiveOrders = async () => {
     FROM orders o
     JOIN tables t ON o.table_id = t.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
-    WHERE o.status NOT IN ('SERVED', 'ARCHIVED')
+    WHERE o.status <> 'ARCHIVED'
     GROUP BY o.id, t.table_number, o.table_id, o.status, o.total, o.created_at
     ORDER BY o.created_at DESC
   `);

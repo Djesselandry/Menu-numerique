@@ -263,92 +263,6 @@
             }
         }
 
-
-        function createOrderCard(order, isServed = false) {
-            const statusClass = {
-                pending: 'badge-yellow',
-                preparing: 'badge-blue',
-                served: 'badge-green'
-            }[order.status];
-            
-            const statusText = {
-                pending: 'En attente',
-                preparing: 'En préparation',
-                served: 'Servi'
-            }[order.status];
-
-            const actionButtons = order.status === 'pending' 
-                ? `<button class="btn btn-secondary" style="width: 100%;" onclick="updateOrderStatus(${order.id}, 'preparing')">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M7 6V4a1 1 0 011-1h8a1 1 0 011 1v2M5 6h14l-1 14H6L5 6z"></path></svg>
-                    En préparation
-                   </button>`
-                : order.status === 'preparing'
-                ? `<button class="btn btn-success" style="width: 100%;" onclick="updateOrderStatus(${order.id}, 'served')">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Servi
-                   </button>`
-                : '';
-
-            return `
-                <div class="card" style="${isServed ? 'background: #f9fafb; opacity: 0.75;' : 'border: 2px solid #f3f4f6;'}">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                        <div>
-                            <h3 style="font-size: 1.125rem; font-weight: bold; color: ${isServed ? '#6b7280' : '#111827'};">Table ${order.tableNumber}</h3>
-                            <p style="font-size: 0.875rem; color: #6b7280;">${order.time}</p>
-                        </div>
-                        <span class="badge ${statusClass}">${statusText}</span>
-                    </div>
-                    <div class="order-items">
-                        ${order.items.map(item => `
-                            <div class="order-item">
-                                <span style="font-weight: 500;">${item.quantity}x ${item.name}</span>
-                                <span style="color: #6b7280;">${(item.quantity * item.price).toFixed(2)} fbu</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div style="border-top: 1px solid #e5e7eb; padding-top: 0.75rem; margin-bottom: 1rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 600; color: #374151;">Total</span>
-                            <span style="font-size: 1.25rem; font-weight: bold; color: ${isServed ? '#6b7280' : '#f97316'};">
-                                ${order.totalPrice.toFixed(2)} €
-                            </span>
-                        </div>
-                    </div>
-                    ${actionButtons}
-                </div>
-            `;
-        }
-
-        function updateOrderStatus(orderId, status) {
-            const order = orders.find(o => o.id === orderId);
-            if (!order) return;
-
-            order.status = status;
-
-            if (status === 'served') {
-                const now = new Date();
-                const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(invoiceCounter).padStart(4, '0')}`;
-                
-                invoices.unshift({
-                    id: invoiceCounter,
-                    invoiceNumber,
-                    tableNumber: order.tableNumber,
-                    items: order.items,
-                    totalPrice: order.totalPrice,
-                    date: now.toLocaleDateString('fr-FR'),
-                    time: order.time
-                });
-                
-                invoiceCounter++;
-                showToast(`Facture ${invoiceNumber} générée automatiquement`);
-                renderInvoices();
-            }
-
-            const statusText = status === 'preparing' ? 'en préparation' : 'servie';
-            showToast(`Commande #${orderId} passée ${statusText}`);
-            renderOrders();
-        }
-
         // Menu Functions
         function renderMenu() {
             const categories = ['Tous', ...new Set(menuItems.map(item => item.category))];
@@ -893,7 +807,7 @@
                 if (order) {
                     order.status = newStatus;
                     
-                    // Émettre les événements socket.io
+                    // Emit Socket.IO events
                     if (newStatus === 'PREPARING') {
                         socket.emit('order_preparing', {
                             order_id: orderId,
@@ -901,14 +815,14 @@
                             status: newStatus
                         });
                     } else if (newStatus === 'SERVED') {
+                         // Generate invoice automatically
+                        generateInvoice(order);
                         socket.emit('order_served', {
                             order_id: orderId,
                             table_number: order.tableNumber,
                             status: newStatus
                         });
                         
-                        // Générer automatiquement une facture
-                        generateInvoice(order);
                     }
                 }
                 
