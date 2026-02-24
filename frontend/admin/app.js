@@ -608,89 +608,127 @@
 
         function printInvoice(id) {
             const invoice = invoices.find(inv => inv.id === id);
-            if (!invoice) return;
+            if (!invoice) {
+                showToast('Facture introuvable', 'error');
+                return;
+            }
 
-            const printWindow = window.open('', '', 'width=800,height=600');
+            console.log('Invoice data:', invoice); // Debug
+
+            const printWindow = window.open('', '', 'width=400,height=600');
             if (!printWindow) {
                 showToast('Veuillez autoriser les fenêtres popup');
                 return;
             }
 
+            // Vérifier que les items existent
+            const items = invoice.items && Array.isArray(invoice.items) ? invoice.items : [];
+            
+            // Format compatible avec imprimantes 80mm thermiques/tickets
             const printContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
+                    <meta charset="UTF-8">
                     <title>Facture ${invoice.invoiceNumber}</title>
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body { font-family: Arial, sans-serif; padding: 40px; background: white; }
-                        .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #f97316; padding-bottom: 20px; }
-                        .header h1 { color: #f97316; font-size: 32px; margin-bottom: 10px; }
-                        .header p { color: #666; }
-                        .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; padding: 20px; background: #fff7ed; border-radius: 8px; }
-                        .info-block h3 { color: #f97316; margin-bottom: 5px; font-size: 14px; }
-                        .info-block p { color: #333; font-size: 16px; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th { background: #f97316; color: white; padding: 12px; text-align: left; font-weight: 600; }
-                        td { padding: 12px; border-bottom: 1px solid #e5e5e5; }
-                        tr:hover { background: #f9f9f9; }
-                        .total-row { background: #fff7ed; font-weight: bold; font-size: 18px; }
-                        .total-row td { border-bottom: none; padding: 20px 12px; }
-                        .footer { margin-top: 50px; text-align: center; color: #666; font-size: 14px; border-top: 1px solid #e5e5e5; padding-top: 20px; }
-                        @media print { body { padding: 20px; } }
+                        body { 
+                            font-family: 'Courier New', monospace; 
+                            width: 80mm; 
+                            max-width: 100%;
+                            padding: 0;
+                            background: white;
+                            color: #000;
+                        }
+                        .container { width: 100%; padding: 4mm; }
+                        .center { text-align: center; }
+                        .header { font-weight: bold; font-size: 18px; margin-bottom: 2mm; }
+                        .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+                        .info-row { display: flex; justify-content: space-between; font-size: 11px; margin: 1mm 0; }
+                        .info-label { font-weight: bold; }
+                        .items-section { margin: 2mm 0; }
+                        .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr; font-size: 11px; gap: 2px; margin: 1mm 0; }
+                        .item-name { word-break: break-word; }
+                        .item-qty { text-align: center; }
+                        .item-price { text-align: right; }
+                        .item-detail { font-size: 10px; color: #333; }
+                        .total-section { margin: 2mm 0; }
+                        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
+                        .footer { text-align: center; font-size: 10px; margin-top: 3mm; color: #333; }
+                        .footer-text { margin: 1mm 0; }
+                        @media print { 
+                            body { width: 80mm; padding: 0; }
+                            .container { padding: 4mm; }
+                        }
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <h1>🍽️ Restaurant</h1>
-                        <p>Délicieux & Frais</p>
-                    </div>
-                    <div class="info-section">
-                        <div class="info-block">
-                            <h3>FACTURE N°</h3>
-                            <p><strong>${invoice.invoiceNumber}</strong></p>
+                    <div class="container">
+                        <div class="center header">🍽️ RESTAURANT</div>
+                        <div class="center" style="font-size: 10px;">Délicieux & Frais</div>
+                        <div class="divider"></div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Facture:</span>
+                            <span>${invoice.invoiceNumber || 'N/A'}</span>
                         </div>
-                        <div class="info-block">
-                            <h3>TABLE</h3>
-                            <p><strong>Table ${invoice.tableNumber}</strong></p>
+                        <div class="info-row">
+                            <span class="info-label">Table:</span>
+                            <span>${invoice.tableNumber || 'N/A'}</span>
                         </div>
-                        <div class="info-block">
-                            <h3>DATE</h3>
-                            <p>${invoice.date}</p>
+                        <div class="info-row">
+                            <span class="info-label">Date:</span>
+                            <span>${invoice.date || 'N/A'}</span>
                         </div>
-                        <div class="info-block">
-                            <h3>HEURE</h3>
-                            <p>${invoice.time}</p>
+                        <div class="info-row">
+                            <span class="info-label">Heure:</span>
+                            <span>${invoice.time || 'N/A'}</span>
                         </div>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Article</th>
-                                <th style="text-align: center;">Quantité</th>
-                                <th style="text-align: right;">Prix Unit.</th>
-                                <th style="text-align: right;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${invoice.items.map(item => `
-                                <tr>
-                                    <td>${item.name}</td>
-                                    <td style="text-align: center;">${item.quantity}</td>
-                                    <td style="text-align: right;">${item.price.toFixed(2)} €</td>
-                                    <td style="text-align: right;">${(item.quantity * item.price).toFixed(2)} fbu</td>
-                                </tr>
-                            `).join('')}
-                            <tr class="total-row">
-                                <td colspan="3" style="text-align: right; color: #f97316;">TOTAL</td>
-                                <td style="text-align: right; color: #f97316;">${invoice.totalPrice.toFixed(2)} fbu</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="footer">
-                        <p>Merci de votre visite !</p>
-                        <p>Restaurant - 123 Rue de la Gastronomie, 75001 Paris</p>
-                        <p>Tél: 01 23 45 67 89</p>
+                        
+                        <div class="divider"></div>
+                        
+                        <div style="font-size: 11px; font-weight: bold; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2px; margin-bottom: 1mm;">
+                            <span>ARTICLE</span>
+                            <span style="text-align: center;">QTE</span>
+                            <span style="text-align: right;">TOTAL</span>
+                        </div>
+                        <div class="divider"></div>
+                        
+                        <div class="items-section">
+                            ${items.length > 0 ? items.map(item => {
+                                const itemName = item.name || item.item_name || 'Article';
+                                const itemQty = item.quantity || item.qty || 1;
+                                const itemPrice = parseFloat(item.price || item.unit_price || 0);
+                                const itemTotal = itemQty * itemPrice;
+                                
+                                return `
+                                    <div class="item-row">
+                                        <span class="item-name">${itemName}</span>
+                                        <span class="item-qty">${itemQty}</span>
+                                        <span class="item-price">${itemTotal.toFixed(2)} fbu</span>
+                                    </div>
+                                    <div style="font-size: 9px; color: #666; grid-column: 1/4; text-align: right;">${itemPrice.toFixed(2)} fbu x ${itemQty}</div>
+                                `;
+                            }).join('') : '<div style="text-align: center; color: #999; padding: 2mm;">Aucun article</div>'}
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="total-section">
+                            <div class="total-row">
+                                <span>TOTAL TTC:</span>
+                                <span>${(invoice.totalPrice || 0).toFixed(2)} fbu</span>
+                            </div>
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="center footer">
+                            <div class="footer-text">Merci de votre visite !</div>
+                            <div class="footer-text">Restaurant - Rue Principale</div>
+                            <div class="footer-text" style="margin-top: 2mm; font-weight: bold;">${new Date().toLocaleString('fr-FR')}</div>
+                        </div>
                     </div>
                 </body>
                 </html>
