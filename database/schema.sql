@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   CONSTRAINT fk_item_menu
     FOREIGN KEY (menu_id)
     REFERENCES menu(id)
+    ON DELETE CASCADE
 );
 
 -- -------------------------

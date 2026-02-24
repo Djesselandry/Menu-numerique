@@ -75,8 +75,14 @@ const updateMenuItem = async (req, res) => {
     }
 
     const item = await Menu.updateMenuItem(id, name, description, price, is_active, finalImageUrl, category);
+    
+    if (!item) {
+      return res.status(404).json({ error: "Article non trouvé" });
+    }
+    
     res.json(item);
   } catch (err) {
+    console.error('Error updateMenuItem:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -85,9 +91,28 @@ const updateMenuItem = async (req, res) => {
 const deleteMenuItem = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Vérifier s'il y a des commandes actives avec cet article
+    const activeOrdersCount = await Menu.checkActiveOrders(id);
+    
+    if (activeOrdersCount && activeOrdersCount > 0) {
+      // Il y a des commandes actives, proposer la désactivation
+      return res.status(409).json({ 
+        error: "Cet article a des commandes actives",
+        activeOrdersCount: activeOrdersCount,
+        suggestion: "Désactivez l'article plutôt que de le supprimer pour garder l'historique"
+      });
+    }
+    
     const item = await Menu.deleteMenuItem(id);
-    res.json(item);
+    
+    if (!item) {
+      return res.status(404).json({ error: "Article non trouvé" });
+    }
+    
+    res.json({ success: true, id: item.id, message: "Article supprimé avec succès" });
   } catch (err) {
+    console.error('Error deleteMenuItem:', err);
     res.status(500).json({ error: err.message });
   }
 };

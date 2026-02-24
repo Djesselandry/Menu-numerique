@@ -137,10 +137,13 @@
         // Charger le menu depuis l'API
         async function loadMenuFromAPI() {
             try {
+                // Charger TOUS les plats (y compris inactifs) pour l'admin
                 const res = await fetch("/api/menu");
-                const data = await res.json();
+                const activePlats = await res.json();
                 
-                menuItems = data.map(item => ({
+                // Charger aussi les plats inactifs en faisant une requête spéciale
+                // Pour maintenant, on charge juste les actifs mais on ajoute une fonction pour recalculer
+                menuItems = activePlats.map(item => ({
                     id: item.id,
                     name: item.name,
                     description: item.description || "",
@@ -150,11 +153,39 @@
                     available: item.is_active || true
                 }));
 
+                // Recharger tous les plats pour l'admin directement de la DB
+                loadAllMenuItemsForAdmin();
+                
                 renderMenu();
                 setupMenuEventListeners();
             } catch (error) {
                 console.error("Erreur chargement menu :", error);
                 showToast("Impossible de charger le menu", "error");
+            }
+        }
+
+        async function loadAllMenuItemsForAdmin() {
+            try {
+                // Cette fonction charge TOUS les plats côté admin
+                const token = localStorage.getItem(AUTH_TOKEN_KEY);
+                const res = await fetch("/api/menu/admin/all", {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).catch(() => null);
+                
+                if (res && res.ok) {
+                    const data = await res.json();
+                    menuItems = data.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        description: item.description || "",
+                        price: Number(item.price),
+                        image: item.image_url ? `/uploads${item.image_url}` : 'https://via.placeholder.com/400x300?text=Menu',
+                        category: item.category || "Autres",
+                        available: item.is_active || true
+                    }));
+                }
+            } catch (err) {
+                console.log('Admin menu load fallback - using active items only');
             }
         }
 
@@ -334,12 +365,10 @@
                         <span class="badge" style="border: 1px solid #e5e7eb; background: white; color: #6b7280; font-size: 0.75rem;">${item.category}</span>
                         
                         <div style="display: flex; align-items: center; justify-content: space-between; margin: 0.75rem 0; padding: 0.5rem; background: #f9fafb; border-radius: 0.5rem;">
-                            <label style="font-size: 0.875rem; margin: 0;">Disponible</label>
-                            <label class="switch">
-                                <input type="checkbox" ${item.available ? 'checked' : ''} 
-                                       onchange="toggleAvailability(${item.id})">
-                                <span class="slider"></span>
-                            </label>
+                            <label style="font-size: 0.875rem; margin: 0;">${item.available ? '✓ Actif' : '✗ Inactif'}</label>
+                            <button class="btn" style="font-size: 0.875rem; background: ${item.available ? '#22c55e' : '#ef4444'}; color: white; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.375rem;" onclick="toggleMenuItemActive(${item.id}, ${!item.available})">
+                                ${item.available ? 'Désactiver' : 'Activer'}
+                            </button>
                         </div>
                         
                         <div style="display: flex; gap: 0.5rem;">
@@ -365,13 +394,82 @@
             renderMenu();
         }
 
+        function toggleMenuItemActive(id, makeActive) {
+            const item = menuItems.find(i => i.id === id);
+            if (!item) return;
+            
+            fetch(`/api/menu/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: item.name,
+                    description: item.description,
+                    price: item.price,
+                    category: item.category,
+                    available: makeActive
+                })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                item.available = data.is_active;
+                showToast(`${item.name} ${data.is_active ? 'activé' : 'désactivé'}`);
+                renderMenu();
+            })
+            .catch(err => {
+                console.error('Error toggleMenuItemActive:', err);
+                showToast('Erreur lors de la mise à jour', 'error');
+            });
+        }
+
         function toggleAvailability(id) {
             const item = menuItems.find(i => i.id === id);
-            if (item) {
-                item.available = !item.available;
-                showToast(`${item.name} ${item.available ? 'activé' : 'désactivé'}`);
-                renderMenu();
-            }
+            if (!item) return;
+            
+            // Inverser la disponibilité
+            const newAvailable = !item.available;
+            
+            console.log('toggleAvailability - ID:', id, 'Current:', item.available, 'New:', newAvailable);
+            
+            // Appel API pour mettre à jour
+            fetch(`/api/menu/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: item.name,
+                    description: item.description,
+                    price: item.price,
+                    category: item.category,
+                    available: newAvailable
+                })
+            })
+            .then(res => {
+                console.log('PUT Response Status:', res.status);
+                if (!res.ok) {
+                    throw new Error(`Erreur HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('PUT Response:', data);
+                if (data) {
+                    item.available = data.is_active !== undefined ? data.is_active : newAvailable;
+                    showToast(`${item.name} ${item.available ? 'activé' : 'désactivé'}`);
+                    renderMenu();
+                } else {
+                    throw new Error('Réponse vide du serveur');
+                }
+            })
+            .catch(err => {
+                console.error('Error PUT:', err);
+                showToast('Erreur lors de la mise à jour', 'error');
+            });
         }
 
         function openMenuModal(item = null) {
@@ -416,13 +514,30 @@
         function deleteMenuItem(id, name) {
             if (confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) {
                 fetch(`/api/menu/${id}`, { method: 'DELETE' })
-                    .then(() => {
-                        menuItems = menuItems.filter(item => item.id !== id);
-                        showToast('Article supprimé');
-                        renderMenu();
+                    .then(res => {
+                        console.log('DELETE Response Status:', res.status);
+                        return res.json().then(data => ({ status: res.status, data }));
+                    })
+                    .then(({ status, data }) => {
+                        console.log('DELETE Response:', data);
+                        
+                        if (status === 409) {
+                            // Article a des commandes actives
+                            showToast(`❌ ${data.error} (${data.activeOrdersCount} commande${data.activeOrdersCount > 1 ? 's' : ''} active${data.activeOrdersCount > 1 ? 's' : ''})`, 'error');
+                            console.log('Suggestion:', data.suggestion);
+                        } else if (status === 404) {
+                            showToast('Article non trouvé', 'error');
+                        } else if (status >= 400) {
+                            showToast(data.error || 'Erreur lors de la suppression', 'error');
+                        } else {
+                            // Succès
+                            menuItems = menuItems.filter(item => item.id !== id);
+                            showToast('Article supprimé');
+                            renderMenu();
+                        }
                     })
                     .catch(err => {
-                        console.error(err);
+                        console.error('Error DELETE:', err);
                         showToast('Erreur lors de la suppression', 'error');
                     });
             }
