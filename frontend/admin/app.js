@@ -232,9 +232,40 @@
             }
         }
 
+        // Fonction pour jouer un son d'alerte pour nouvelle commande (plus fort et distinctif)
+        function playOrderNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                
+                // Double alerte pour nouvelle commande
+                // Première alerte
+                const osc1 = audioContext.createOscillator();
+                const gain1 = audioContext.createGain();
+                osc1.connect(gain1);
+                gain1.connect(audioContext.destination);
+                osc1.frequency.setValueAtTime(1000, now);
+                gain1.gain.setValueAtTime(0.4, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc1.start(now);
+                osc1.stop(now + 0.2);
+                
+                // Deuxième alerte (légèrement en retard et plus haute)
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.setValueAtTime(1400, now + 0.25);
+                gain2.gain.setValueAtTime(0.4, now + 0.25);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                osc2.start(now + 0.25);
+                osc2.stop(now + 0.45);
+            } catch (err) {
+                console.log('Son de notification non disponible');
+            }
+        }
+
         function showToast(message, type = 'success') {
-            playNotificationSound(type);
-            
             const toast = document.getElementById('toast');
             document.getElementById('toast-message').textContent = message;
             toast.classList.add('active');
@@ -857,6 +888,10 @@
 
         // Socket.io event listeners
         socket.on('new_order_notification', (data) => {
+            // Jouer le son d'alerte pour la nouvelle commande
+            playOrderNotificationSound();
+            
+            // Afficher le message sans son (le son est déjà joué ci-dessus)
             showToast(`🔔 NOUVELLE COMMANDE! Table ${data.table_number} - ${data.items.length} article(s) - ${data.total?.toFixed(2) || 0} fbu`, 'success');
             loadOrders(); // Charger les nouvelles commandes immédiatement
         });

@@ -410,8 +410,6 @@
     }
 
     function showToast(message, type = 'success') {
-      playNotificationSound(type);
-      
       const toast = document.getElementById('toast');
       const toastMessage = document.getElementById('toastMessage');
       
@@ -423,15 +421,50 @@
       }, 3000);
     }
 
+    // Fonction pour jouer un son d'alerte pour les notifications de commande
+    function playOrderStatusSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioContext.currentTime;
+        
+        // Double alerte pour notification de statut
+        // Première alerte
+        const osc1 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        osc1.connect(gain1);
+        gain1.connect(audioContext.destination);
+        osc1.frequency.setValueAtTime(1000, now);
+        gain1.gain.setValueAtTime(0.4, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc1.start(now);
+        osc1.stop(now + 0.2);
+        
+        // Deuxième alerte (légèrement en retard et plus haute)
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        osc2.frequency.setValueAtTime(1400, now + 0.25);
+        gain2.gain.setValueAtTime(0.4, now + 0.25);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc2.start(now + 0.25);
+        osc2.stop(now + 0.45);
+      } catch (err) {
+        console.log('Son de notification non disponible');
+      }
+    }
+
     // Socket.io event listeners
     socket.on('order_preparing_notification', (data) => {
       if (data.table_number === currentTableNumber) {
+        playOrderStatusSound();
         showToast('🍳 Votre commande est en préparation!', 'success');
       }
     });
 
     socket.on('order_served_notification', (data) => {
       if (data.table_number === currentTableNumber) {
+        playOrderStatusSound();
         showToast('✅ Votre commande est prête! À venir chercher!', 'success');
       }
     });
