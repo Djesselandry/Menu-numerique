@@ -205,13 +205,13 @@
     function renderMenu() {
       const grid = document.getElementById('menuGrid');
       const items = getFilteredItems();
-      
+
       grid.innerHTML = items.map(item => {
         const quantity = getItemQuantity(item.id);
         return `
           <div class="menu-card">
-            <div class="card-image-container">
-              <img src="${item.image}" alt="${item.name}" class="card-image">
+            <div class="card-image-container" style="height: auto;">
+              <img src="${item.image}" alt="${item.name}" class="card-image" style="width: 100%; height: auto; display: block;">
               ${item.popular ? '<div class="popular-badge">Populaire</div>' : ''}
             </div>
             <div class="card-content">
