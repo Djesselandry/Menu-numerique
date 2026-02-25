@@ -19,6 +19,7 @@
       popular: item.popular || false
     }));
 
+    updateCategories();
     renderMenu();
     renderCategories();
   } catch (error) {
@@ -28,8 +29,7 @@
 }
 
     let menuItems = [];
-
-    const categories = ['Tous', 'Burgers', 'Pizzas', 'Pâtes', 'Salades', 'Sushi', 'Desserts'];
+    let categories = ['Tous'];
 
     // State
     let cart = [];
@@ -60,6 +60,12 @@
     };
 
     // Functions
+    function updateCategories() {
+      // Extraire les catégories uniques depuis les menuItems
+      const uniqueCategories = [...new Set(menuItems.map(item => item.category))];
+      categories = ['Tous', ...uniqueCategories.filter(cat => cat !== 'Tous')];
+    }
+
     function getFilteredItems() {
       return selectedCategory === 'Tous' 
         ? menuItems 
@@ -318,6 +324,7 @@
       const list = document.getElementById('categoriesList');
       list.innerHTML = categories.map(category => {
         const isSelected = selectedCategory === category;
+        // Utiliser l'icône de la catégorie ou un fallback pour les catégories personnalisées
         const icon = categoryIcons[category] || icons.utensils;
         return `
           <button 
@@ -471,5 +478,4 @@
 
     // Initialize
     loadMenuFromAPI();
-    renderCategories();
     updateCartBar();

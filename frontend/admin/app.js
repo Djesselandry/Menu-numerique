@@ -476,6 +476,29 @@
             editingItemId = item ? item.id : null;
             document.getElementById('modal-title').textContent = item ? "Modifier l'article" : "Ajouter un article";
             
+            // Réinitialiser les champs de catégorie
+            const categorySelect = document.getElementById('item-category');
+            
+            // Remplir dynamiquement les catégories basées sur les données de la DB
+            categorySelect.innerHTML = '<option value="" disabled selected>Choisir une catégorie</option>';
+            const uniqueCategories = [...new Set(menuItems.map(i => i.category).filter(c => c))].sort();
+            
+            uniqueCategories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+
+            const newCategoryInput = document.getElementById('new-category-input');
+            const toggleCategoryBtn = document.getElementById('toggle-new-category');
+            
+            // Reset state
+            categorySelect.value = '';
+            newCategoryInput.value = '';
+            newCategoryInput.style.display = 'none';
+            toggleCategoryBtn.textContent = '+';
+            
             if (item) {
                 document.getElementById('item-name').value = item.name;
                 document.getElementById('item-description').value = item.description;
@@ -483,6 +506,7 @@
                 document.getElementById('item-category').value = item.category;
                 document.getElementById('item-image').value = '';
                 document.getElementById('item-available').checked = item.available;
+                newCategoryInput.style.display = 'none';
             } else {
                 document.getElementById('menu-form').reset();
             }
@@ -499,6 +523,34 @@
                     renderMenu();
                 }
             });
+            
+            // Gestion du bouton de création de catégorie
+            const toggleCategoryBtn = document.getElementById('toggle-new-category');
+            const categorySelect = document.getElementById('item-category');
+            const newCategoryInput = document.getElementById('new-category-input');
+            
+            if (toggleCategoryBtn) {
+                toggleCategoryBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const isHidden = newCategoryInput.style.display === 'none';
+                    
+                    if (isHidden) {
+                        // Afficher le champ de saisie
+                        newCategoryInput.style.display = 'block';
+                        categorySelect.style.display = 'none';
+                        toggleCategoryBtn.textContent = '✓';
+                        toggleCategoryBtn.style.background = '#10b981';
+                        newCategoryInput.focus();
+                    } else {
+                        // Masquer le champ de saisie
+                        newCategoryInput.style.display = 'none';
+                        categorySelect.style.display = 'block';
+                        toggleCategoryBtn.textContent = '+';
+                        toggleCategoryBtn.style.background = '';
+                        categorySelect.value = '';
+                    }
+                });
+            }
         }
 
         function closeMenuModal() {
@@ -549,10 +601,24 @@
             const name = document.getElementById('item-name').value;
             const description = document.getElementById('item-description').value;
             const price = parseFloat(document.getElementById('item-price').value);
-            const category = document.getElementById('item-category').value;
+            const categorySelect = document.getElementById('item-category');
+            const newCategoryInput = document.getElementById('new-category-input');
             const available = document.getElementById('item-available').checked;
             const imageInput = document.getElementById('item-image');
             const hasNewImage = imageInput.files && imageInput.files[0];
+            
+            // Déterminer la catégorie (nouvelle ou existante)
+            let category = '';
+            if (newCategoryInput.style.display !== 'none' && newCategoryInput.value.trim()) {
+                // Nouvelle catégorie
+                category = newCategoryInput.value.trim();
+            } else if (categorySelect.style.display !== 'none' && categorySelect.value.trim()) {
+                // Catégorie existante
+                category = categorySelect.value;
+            } else {
+                showToast('Veuillez sélectionner ou créer une catégorie', 'error');
+                return;
+            }
 
             try {
                 if (editingItemId) {

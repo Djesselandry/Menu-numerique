@@ -339,15 +339,24 @@
                 </div>
                 <div class="form-group">
                     <label>Catégorie</label>
-                    <select id="item-category">
-                        <option>Burgers</option>
-                        <option>Pizzas</option>
-                        <option>Pâtes</option>
-                        <option>Salades</option>
-                        <option>Sushi</option>
-                        <option>Desserts</option>
-                        <option>Boissons</option>
-                    </select>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <select id="item-category">
+                            <option value="">-- Sélectionner ou créer --</option>
+                            <option>Burgers</option>
+                            <option>Pizzas</option>
+                            <option>Pâtes</option>
+                            <option>Salades</option>
+                            <option>Sushi</option>
+                            <option>Desserts</option>
+                            <option>Boissons</option>
+                        </select>
+                        <button type="button" id="toggle-new-category" class="btn btn-outline" style="padding: 0.5rem 1rem;" title="Créer une nouvelle catégorie">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="text" id="new-category-input" placeholder="Nom de la nouvelle catégorie..." style="display: none;">
                 </div>
                 <div class="form-group">
                     <label>Image</label>
