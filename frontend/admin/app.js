@@ -1,8 +1,139 @@
+        // ===== AUTHENTICATION SYSTEM =====
+        const AUTH_TOKEN_KEY = 'adminToken';
+        const API_URL = 'http://localhost:5000/api';
 
+<<<<<<< HEAD
         // Data
         let orders = [];
         let isFirstLoad = true;
+=======
+        // Socket.io initialization
+        const socket = io();
 
+        // Authentication Elements
+        const loginScreen = document.getElementById('login-screen');
+        const dashboard = document.getElementById('dashboard');
+        const loginForm = document.getElementById('login-form');
+        const loginUsernameInput = document.getElementById('login-username');
+        const loginPasswordInput = document.getElementById('login-password');
+        const loginSubmitBtn = document.getElementById('login-submit-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginError = document.getElementById('login-error');
+
+        // Auth initialization
+        function initializeAuth() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (token) {
+                showDashboard();
+            } else {
+                showLoginScreen();
+            }
+        }
+>>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
+
+        function showLoginScreen() {
+            loginScreen.classList.add('active');
+            dashboard.classList.remove('active');
+        }
+
+        function showDashboard() {
+            loginScreen.classList.remove('active');
+            dashboard.classList.add('active');
+        }
+
+        // Handle login form submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = loginUsernameInput.value.trim();
+            const password = loginPasswordInput.value.trim();
+            
+            if (!username || !password) {
+                showLoginError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            loginSubmitBtn.disabled = true;
+            loginSubmitBtn.textContent = 'Connexion en cours...';
+            loginError.classList.remove('show');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showLoginError(data.error || 'Erreur de connexion');
+                    loginSubmitBtn.disabled = false;
+                    loginSubmitBtn.textContent = 'Se connecter';
+                    return;
+                }
+
+                // Save token to localStorage
+                localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+                
+                // Clear form
+                loginUsernameInput.value = '';
+                loginPasswordInput.value = '';
+                loginError.classList.remove('show');
+                
+                // Show dashboard
+                showDashboard();
+                
+                // Reset button
+                loginSubmitBtn.disabled = false;
+                loginSubmitBtn.textContent = 'Se connecter';
+            } catch (err) {
+                console.log('Erreur:', err);
+                showLoginError('Erreur de connexion au serveur');
+                loginSubmitBtn.disabled = false;
+                loginSubmitBtn.textContent = 'Se connecter';
+            }
+        });
+
+        // Handle logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                const token = localStorage.getItem(AUTH_TOKEN_KEY);
+                
+                if (token) {
+                    await fetch(`${API_URL}/auth/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Erreur lors de la déconnexion:', err);
+            } finally {
+                // Clear token regardless of API response
+                localStorage.removeItem(AUTH_TOKEN_KEY);
+                
+                // Reset form and show login screen
+                loginUsernameInput.value = '';
+                loginPasswordInput.value = '';
+                loginError.classList.remove('show');
+                
+                showLoginScreen();
+            }
+        });
+
+        function showLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.add('show');
+        }
+
+        // ===== DASHBOARD CODE =====
+        // Data
+        let orders = [];
         let menuItems = [];
         let invoices = [];
         let invoiceCounter = 1;
@@ -12,10 +143,13 @@
         // Charger le menu depuis l'API
         async function loadMenuFromAPI() {
             try {
+                // Charger TOUS les plats (y compris inactifs) pour l'admin
                 const res = await fetch("/api/menu");
-                const data = await res.json();
+                const activePlats = await res.json();
                 
-                menuItems = data.map(item => ({
+                // Charger aussi les plats inactifs en faisant une requête spéciale
+                // Pour maintenant, on charge juste les actifs mais on ajoute une fonction pour recalculer
+                menuItems = activePlats.map(item => ({
                     id: item.id,
                     name: item.name,
                     description: item.description || "",
@@ -25,6 +159,9 @@
                     available: item.is_active
                 }));
 
+                // Recharger tous les plats pour l'admin directement de la DB
+                loadAllMenuItemsForAdmin();
+                
                 renderMenu();
                 setupMenuEventListeners();
             } catch (error) {
@@ -33,6 +170,7 @@
             }
         }
 
+<<<<<<< HEAD
         // Charger les commandes depuis l'API
         async function loadOrdersFromAPI() {
             try {
@@ -65,15 +203,44 @@
             } catch (error) {
                 console.error("Erreur chargement commandes :", error);
                 showToast("Impossible de charger les commandes");
+=======
+        async function loadAllMenuItemsForAdmin() {
+            try {
+                // Cette fonction charge TOUS les plats côté admin
+                const token = localStorage.getItem(AUTH_TOKEN_KEY);
+                const res = await fetch("/api/menu/admin/all", {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).catch(() => null);
+                
+                if (res && res.ok) {
+                    const data = await res.json();
+                    menuItems = data.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        description: item.description || "",
+                        price: Number(item.price),
+                        image: item.image_url ? `/uploads${item.image_url}` : 'https://via.placeholder.com/400x300?text=Menu',
+                        category: item.category || "Autres",
+                        available: item.is_active || true
+                    }));
+                }
+            } catch (err) {
+                console.log('Admin menu load fallback - using active items only');
+>>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
             }
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            initializeAuth();
             updateDate();
             setupTabs();
             loadMenuFromAPI();
+<<<<<<< HEAD
             loadOrdersFromAPI();
+=======
+            loadOrders();
+>>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
             renderInvoices();
             setupSearch();
             
@@ -100,7 +267,84 @@
             });
         }
 
-        function showToast(message) {
+        // Fonction pour jouer un son de notification
+        function playNotificationSound(type = 'success') {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                
+                if (type === 'success') {
+                    // Son de succès: deux bips montants
+                    const osc1 = audioContext.createOscillator();
+                    const osc2 = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioContext.destination);
+                    
+                    osc1.frequency.setValueAtTime(800, now);
+                    osc2.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    
+                    osc1.start(now);
+                    osc2.start(now + 0.1);
+                    osc1.stop(now + 0.15);
+                    osc2.stop(now + 0.3);
+                } else if (type === 'error') {
+                    // Son d'erreur: bip grave
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    
+                    osc.frequency.setValueAtTime(300, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch (err) {
+                console.log('Son non disponible');
+            }
+        }
+
+        // Fonction pour jouer un son d'alerte pour nouvelle commande (plus fort et distinctif)
+        function playOrderNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                
+                // Double alerte pour nouvelle commande
+                // Première alerte
+                const osc1 = audioContext.createOscillator();
+                const gain1 = audioContext.createGain();
+                osc1.connect(gain1);
+                gain1.connect(audioContext.destination);
+                osc1.frequency.setValueAtTime(1000, now);
+                gain1.gain.setValueAtTime(0.4, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc1.start(now);
+                osc1.stop(now + 0.2);
+                
+                // Deuxième alerte (légèrement en retard et plus haute)
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.setValueAtTime(1400, now + 0.25);
+                gain2.gain.setValueAtTime(0.4, now + 0.25);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                osc2.start(now + 0.25);
+                osc2.stop(now + 0.45);
+            } catch (err) {
+                console.log('Son de notification non disponible');
+            }
+        }
+
+        function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             document.getElementById('toast-message').textContent = message;
             toast.classList.add('active');
@@ -132,15 +376,15 @@
 
         // Orders Functions
         function renderOrders() {
-            const activeOrders = orders.filter(o => o.status !== 'served');
-            const servedOrders = orders.filter(o => o.status === 'served');
+            const activeOrders = orders.filter(o => o.status !== 'SERVED' && o.status !== 'ARCHIVED');
+            const servedOrders = orders.filter(o => o.status === 'SERVED' || o.status === 'ARCHIVED');
             
             document.getElementById('active-orders-count').textContent = activeOrders.length;
             
             const ordersGrid = document.getElementById('orders-grid');
             ordersGrid.innerHTML = activeOrders.length === 0 
-                ? '<div class="empty-state card"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p>Aucune commande active</p></div>'
-                : activeOrders.map(order => createOrderCard(order)).join('');
+                ? '<div class="empty-state card"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p>Aucune commande en attente</p></div>'
+                : activeOrders.map(order => createOrderCard(order, false)).join('');
             
             const servedSection = document.getElementById('served-orders-section');
             if (servedOrders.length > 0) {
@@ -152,6 +396,7 @@
             }
         }
 
+<<<<<<< HEAD
         function createOrderCard(order, isServed = false) {
             const statusClass = {
                 pending: 'badge-yellow',
@@ -300,6 +545,8 @@
             }
         }
 
+=======
+>>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
         // Menu Functions
         function renderMenu() {
             const categories = ['Tous', ...new Set(menuItems.map(item => item.category))];
@@ -336,16 +583,14 @@
                     <div class="menu-item-content">
                         <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 0.25rem;">${item.name}</h3>
                         <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.description}</p>
-                        <p style="color: #f97316; font-weight: bold; font-size: 1.125rem; margin: 0.5rem 0;">${item.price.toFixed(2)} €</p>
+                        <p style="color: #f97316; font-weight: bold; font-size: 1.125rem; margin: 0.5rem 0;">${item.price.toFixed(2)} fbu</p>
                         <span class="badge" style="border: 1px solid #e5e7eb; background: white; color: #6b7280; font-size: 0.75rem;">${item.category}</span>
                         
                         <div style="display: flex; align-items: center; justify-content: space-between; margin: 0.75rem 0; padding: 0.5rem; background: #f9fafb; border-radius: 0.5rem;">
-                            <label style="font-size: 0.875rem; margin: 0;">Disponible</label>
-                            <label class="switch">
-                                <input type="checkbox" ${item.available ? 'checked' : ''} 
-                                       onchange="toggleAvailability(${item.id})">
-                                <span class="slider"></span>
-                            </label>
+                            <label style="font-size: 0.875rem; margin: 0;">${item.available ? '✓ Actif' : '✗ Inactif'}</label>
+                            <button class="btn" style="font-size: 0.875rem; background: ${item.available ? '#22c55e' : '#ef4444'}; color: white; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.375rem;" onclick="toggleMenuItemActive(${item.id}, ${!item.available})">
+                                ${item.available ? 'Désactiver' : 'Activer'}
+                            </button>
                         </div>
                         
                         <div style="display: flex; gap: 0.5rem;">
@@ -371,6 +616,7 @@
             renderMenu();
         }
 
+<<<<<<< HEAD
         async function toggleAvailability(id) {
             const item = menuItems.find(i => i.id === id);
             if (!item) return;
@@ -401,11 +647,112 @@
                 showToast("Impossible de modifier le statut", "error");
                 renderMenu(); // Annuler le changement visuel en cas d'erreur
             }
+=======
+        function toggleMenuItemActive(id, makeActive) {
+            const item = menuItems.find(i => i.id === id);
+            if (!item) return;
+            
+            fetch(`/api/menu/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: item.name,
+                    description: item.description,
+                    price: item.price,
+                    category: item.category,
+                    available: makeActive
+                })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                item.available = data.is_active;
+                showToast(`${item.name} ${data.is_active ? 'activé' : 'désactivé'}`);
+                renderMenu();
+            })
+            .catch(err => {
+                console.error('Error toggleMenuItemActive:', err);
+                showToast('Erreur lors de la mise à jour', 'error');
+            });
+        }
+
+        function toggleAvailability(id) {
+            const item = menuItems.find(i => i.id === id);
+            if (!item) return;
+            
+            // Inverser la disponibilité
+            const newAvailable = !item.available;
+            
+            console.log('toggleAvailability - ID:', id, 'Current:', item.available, 'New:', newAvailable);
+            
+            // Appel API pour mettre à jour
+            fetch(`/api/menu/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: item.name,
+                    description: item.description,
+                    price: item.price,
+                    category: item.category,
+                    available: newAvailable
+                })
+            })
+            .then(res => {
+                console.log('PUT Response Status:', res.status);
+                if (!res.ok) {
+                    throw new Error(`Erreur HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('PUT Response:', data);
+                if (data) {
+                    item.available = data.is_active !== undefined ? data.is_active : newAvailable;
+                    showToast(`${item.name} ${item.available ? 'activé' : 'désactivé'}`);
+                    renderMenu();
+                } else {
+                    throw new Error('Réponse vide du serveur');
+                }
+            })
+            .catch(err => {
+                console.error('Error PUT:', err);
+                showToast('Erreur lors de la mise à jour', 'error');
+            });
+>>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
         }
 
         function openMenuModal(item = null) {
             editingItemId = item ? item.id : null;
             document.getElementById('modal-title').textContent = item ? "Modifier l'article" : "Ajouter un article";
+            
+            // Réinitialiser les champs de catégorie
+            const categorySelect = document.getElementById('item-category');
+            
+            // Remplir dynamiquement les catégories basées sur les données de la DB
+            categorySelect.innerHTML = '<option value="" disabled selected>Choisir une catégorie</option>';
+            const uniqueCategories = [...new Set(menuItems.map(i => i.category).filter(c => c))].sort();
+            
+            uniqueCategories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+
+            const newCategoryInput = document.getElementById('new-category-input');
+            const toggleCategoryBtn = document.getElementById('toggle-new-category');
+            
+            // Reset state
+            categorySelect.value = '';
+            newCategoryInput.value = '';
+            newCategoryInput.style.display = 'none';
+            toggleCategoryBtn.textContent = '+';
             
             if (item) {
                 document.getElementById('item-name').value = item.name;
@@ -414,6 +761,7 @@
                 document.getElementById('item-category').value = item.category;
                 document.getElementById('item-image').value = '';
                 document.getElementById('item-available').checked = item.available;
+                newCategoryInput.style.display = 'none';
             } else {
                 document.getElementById('menu-form').reset();
             }
@@ -430,6 +778,34 @@
                     renderMenu();
                 }
             });
+            
+            // Gestion du bouton de création de catégorie
+            const toggleCategoryBtn = document.getElementById('toggle-new-category');
+            const categorySelect = document.getElementById('item-category');
+            const newCategoryInput = document.getElementById('new-category-input');
+            
+            if (toggleCategoryBtn) {
+                toggleCategoryBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const isHidden = newCategoryInput.style.display === 'none';
+                    
+                    if (isHidden) {
+                        // Afficher le champ de saisie
+                        newCategoryInput.style.display = 'block';
+                        categorySelect.style.display = 'none';
+                        toggleCategoryBtn.textContent = '✓';
+                        toggleCategoryBtn.style.background = '#10b981';
+                        newCategoryInput.focus();
+                    } else {
+                        // Masquer le champ de saisie
+                        newCategoryInput.style.display = 'none';
+                        categorySelect.style.display = 'block';
+                        toggleCategoryBtn.textContent = '+';
+                        toggleCategoryBtn.style.background = '';
+                        categorySelect.value = '';
+                    }
+                });
+            }
         }
 
         function closeMenuModal() {
@@ -445,13 +821,30 @@
         function deleteMenuItem(id, name) {
             if (confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) {
                 fetch(`/api/menu/${id}`, { method: 'DELETE' })
-                    .then(() => {
-                        menuItems = menuItems.filter(item => item.id !== id);
-                        showToast('Article supprimé');
-                        renderMenu();
+                    .then(res => {
+                        console.log('DELETE Response Status:', res.status);
+                        return res.json().then(data => ({ status: res.status, data }));
+                    })
+                    .then(({ status, data }) => {
+                        console.log('DELETE Response:', data);
+                        
+                        if (status === 409) {
+                            // Article a des commandes actives
+                            showToast(`❌ ${data.error} (${data.activeOrdersCount} commande${data.activeOrdersCount > 1 ? 's' : ''} active${data.activeOrdersCount > 1 ? 's' : ''})`, 'error');
+                            console.log('Suggestion:', data.suggestion);
+                        } else if (status === 404) {
+                            showToast('Article non trouvé', 'error');
+                        } else if (status >= 400) {
+                            showToast(data.error || 'Erreur lors de la suppression', 'error');
+                        } else {
+                            // Succès
+                            menuItems = menuItems.filter(item => item.id !== id);
+                            showToast('Article supprimé');
+                            renderMenu();
+                        }
                     })
                     .catch(err => {
-                        console.error(err);
+                        console.error('Error DELETE:', err);
                         showToast('Erreur lors de la suppression', 'error');
                     });
             }
@@ -463,10 +856,24 @@
             const name = document.getElementById('item-name').value;
             const description = document.getElementById('item-description').value;
             const price = parseFloat(document.getElementById('item-price').value);
-            const category = document.getElementById('item-category').value;
+            const categorySelect = document.getElementById('item-category');
+            const newCategoryInput = document.getElementById('new-category-input');
             const available = document.getElementById('item-available').checked;
             const imageInput = document.getElementById('item-image');
             const hasNewImage = imageInput.files && imageInput.files[0];
+            
+            // Déterminer la catégorie (nouvelle ou existante)
+            let category = '';
+            if (newCategoryInput.style.display !== 'none' && newCategoryInput.value.trim()) {
+                // Nouvelle catégorie
+                category = newCategoryInput.value.trim();
+            } else if (categorySelect.style.display !== 'none' && categorySelect.value.trim()) {
+                // Catégorie existante
+                category = categorySelect.value;
+            } else {
+                showToast('Veuillez sélectionner ou créer une catégorie', 'error');
+                return;
+            }
 
             try {
                 if (editingItemId) {
@@ -596,7 +1003,7 @@
                         <div style="text-align: right;">
                             <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Total</p>
                             <p style="font-size: 1.875rem; font-weight: bold; color: #f97316;">
-                                ${invoice.totalPrice.toFixed(2)} €
+                                ${invoice.totalPrice.toFixed(2)} fbu
                             </p>
                         </div>
                     </div>
@@ -610,7 +1017,7 @@
                                         <span style="font-weight: 500;">${item.quantity}x</span> ${item.name}
                                     </span>
                                     <span style="color: #6b7280; font-weight: 500;">
-                                        ${(item.quantity * item.price).toFixed(2)} €
+                                        ${(item.quantity * item.price).toFixed(2)} fbu
                                     </span>
                                 </div>
                             `).join('')}
@@ -637,89 +1044,127 @@
 
         function printInvoice(id) {
             const invoice = invoices.find(inv => inv.id === id);
-            if (!invoice) return;
+            if (!invoice) {
+                showToast('Facture introuvable', 'error');
+                return;
+            }
 
-            const printWindow = window.open('', '', 'width=800,height=600');
+            console.log('Invoice data:', invoice); // Debug
+
+            const printWindow = window.open('', '', 'width=400,height=600');
             if (!printWindow) {
                 showToast('Veuillez autoriser les fenêtres popup');
                 return;
             }
 
+            // Vérifier que les items existent
+            const items = invoice.items && Array.isArray(invoice.items) ? invoice.items : [];
+            
+            // Format compatible avec imprimantes 80mm thermiques/tickets
             const printContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
+                    <meta charset="UTF-8">
                     <title>Facture ${invoice.invoiceNumber}</title>
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body { font-family: Arial, sans-serif; padding: 40px; background: white; }
-                        .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #f97316; padding-bottom: 20px; }
-                        .header h1 { color: #f97316; font-size: 32px; margin-bottom: 10px; }
-                        .header p { color: #666; }
-                        .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; padding: 20px; background: #fff7ed; border-radius: 8px; }
-                        .info-block h3 { color: #f97316; margin-bottom: 5px; font-size: 14px; }
-                        .info-block p { color: #333; font-size: 16px; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th { background: #f97316; color: white; padding: 12px; text-align: left; font-weight: 600; }
-                        td { padding: 12px; border-bottom: 1px solid #e5e5e5; }
-                        tr:hover { background: #f9f9f9; }
-                        .total-row { background: #fff7ed; font-weight: bold; font-size: 18px; }
-                        .total-row td { border-bottom: none; padding: 20px 12px; }
-                        .footer { margin-top: 50px; text-align: center; color: #666; font-size: 14px; border-top: 1px solid #e5e5e5; padding-top: 20px; }
-                        @media print { body { padding: 20px; } }
+                        body { 
+                            font-family: 'Courier New', monospace; 
+                            width: 80mm; 
+                            max-width: 100%;
+                            padding: 0;
+                            background: white;
+                            color: #000;
+                        }
+                        .container { width: 100%; padding: 4mm; }
+                        .center { text-align: center; }
+                        .header { font-weight: bold; font-size: 18px; margin-bottom: 2mm; }
+                        .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+                        .info-row { display: flex; justify-content: space-between; font-size: 11px; margin: 1mm 0; }
+                        .info-label { font-weight: bold; }
+                        .items-section { margin: 2mm 0; }
+                        .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr; font-size: 11px; gap: 2px; margin: 1mm 0; }
+                        .item-name { word-break: break-word; }
+                        .item-qty { text-align: center; }
+                        .item-price { text-align: right; }
+                        .item-detail { font-size: 10px; color: #333; }
+                        .total-section { margin: 2mm 0; }
+                        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
+                        .footer { text-align: center; font-size: 10px; margin-top: 3mm; color: #333; }
+                        .footer-text { margin: 1mm 0; }
+                        @media print { 
+                            body { width: 80mm; padding: 0; }
+                            .container { padding: 4mm; }
+                        }
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <h1>🍽️ Restaurant</h1>
-                        <p>Délicieux & Frais</p>
-                    </div>
-                    <div class="info-section">
-                        <div class="info-block">
-                            <h3>FACTURE N°</h3>
-                            <p><strong>${invoice.invoiceNumber}</strong></p>
+                    <div class="container">
+                        <div class="center header">🍽️ RESTAURANT</div>
+                        <div class="center" style="font-size: 10px;">Délicieux & Frais</div>
+                        <div class="divider"></div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Facture:</span>
+                            <span>${invoice.invoiceNumber || 'N/A'}</span>
                         </div>
-                        <div class="info-block">
-                            <h3>TABLE</h3>
-                            <p><strong>Table ${invoice.tableNumber}</strong></p>
+                        <div class="info-row">
+                            <span class="info-label">Table:</span>
+                            <span>${invoice.tableNumber || 'N/A'}</span>
                         </div>
-                        <div class="info-block">
-                            <h3>DATE</h3>
-                            <p>${invoice.date}</p>
+                        <div class="info-row">
+                            <span class="info-label">Date:</span>
+                            <span>${invoice.date || 'N/A'}</span>
                         </div>
-                        <div class="info-block">
-                            <h3>HEURE</h3>
-                            <p>${invoice.time}</p>
+                        <div class="info-row">
+                            <span class="info-label">Heure:</span>
+                            <span>${invoice.time || 'N/A'}</span>
                         </div>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Article</th>
-                                <th style="text-align: center;">Quantité</th>
-                                <th style="text-align: right;">Prix Unit.</th>
-                                <th style="text-align: right;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${invoice.items.map(item => `
-                                <tr>
-                                    <td>${item.name}</td>
-                                    <td style="text-align: center;">${item.quantity}</td>
-                                    <td style="text-align: right;">${item.price.toFixed(2)} €</td>
-                                    <td style="text-align: right;">${(item.quantity * item.price).toFixed(2)} €</td>
-                                </tr>
-                            `).join('')}
-                            <tr class="total-row">
-                                <td colspan="3" style="text-align: right; color: #f97316;">TOTAL</td>
-                                <td style="text-align: right; color: #f97316;">${invoice.totalPrice.toFixed(2)} €</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="footer">
-                        <p>Merci de votre visite !</p>
-                        <p>Restaurant - 123 Rue de la Gastronomie, 75001 Paris</p>
-                        <p>Tél: 01 23 45 67 89</p>
+                        
+                        <div class="divider"></div>
+                        
+                        <div style="font-size: 11px; font-weight: bold; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2px; margin-bottom: 1mm;">
+                            <span>ARTICLE</span>
+                            <span style="text-align: center;">QTE</span>
+                            <span style="text-align: right;">TOTAL</span>
+                        </div>
+                        <div class="divider"></div>
+                        
+                        <div class="items-section">
+                            ${items.length > 0 ? items.map(item => {
+                                const itemName = item.name || item.item_name || 'Article';
+                                const itemQty = item.quantity || item.qty || 1;
+                                const itemPrice = parseFloat(item.price || item.unit_price || 0);
+                                const itemTotal = itemQty * itemPrice;
+                                
+                                return `
+                                    <div class="item-row">
+                                        <span class="item-name">${itemName}</span>
+                                        <span class="item-qty">${itemQty}</span>
+                                        <span class="item-price">${itemTotal.toFixed(2)} fbu</span>
+                                    </div>
+                                    <div style="font-size: 9px; color: #666; grid-column: 1/4; text-align: right;">${itemPrice.toFixed(2)} fbu x ${itemQty}</div>
+                                `;
+                            }).join('') : '<div style="text-align: center; color: #999; padding: 2mm;">Aucun article</div>'}
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="total-section">
+                            <div class="total-row">
+                                <span>TOTAL TTC:</span>
+                                <span>${(invoice.totalPrice || 0).toFixed(2)} fbu</span>
+                            </div>
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="center footer">
+                            <div class="footer-text">Merci de votre visite !</div>
+                            <div class="footer-text">Restaurant - Rue Principale</div>
+                            <div class="footer-text" style="margin-top: 2mm; font-weight: bold;">${new Date().toLocaleString('fr-FR')}</div>
+                        </div>
                     </div>
                 </body>
                 </html>
@@ -743,3 +1188,187 @@
         document.getElementById('menu-modal').addEventListener('click', (e) => {
             if (e.target.id === 'menu-modal') closeMenuModal();
         });
+
+        // ===== ORDERS FUNCTIONS =====
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_URL}/orders`);
+                if (!response.ok) throw new Error('Erreur chargement commandes');
+                
+                const data = await response.json();
+                orders = data.map(order => ({
+                    id: order.id,
+                    tableNumber: order.table_number,
+                    status: order.status,
+                    totalPrice: Number(order.total),
+                    itemCount: order.item_count || 0,
+                    time: new Date(order.created_at).toLocaleTimeString('fr-FR'),
+                    items: [] // Will be filled when fetching details
+                }));
+                
+                // Charger les détails de chaque commande
+                for (let order of orders) {
+                    const details = await loadOrderDetails(order.id);
+                    if (details && details.items) {
+                        order.items = details.items.filter(item => item !== null);
+                    }
+                }
+                
+                renderOrders();
+            } catch (err) {
+                console.error('Erreur chargement commandes:', err);
+            }
+        }
+
+        async function loadOrderDetails(orderId) {
+            try {
+                const response = await fetch(`${API_URL}/orders/${orderId}`);
+                if (!response.ok) throw new Error('Erreur chargement détails');
+                
+                const data = await response.json();
+                return data;
+            } catch (err) {
+                console.error('Erreur:', err);
+                return null;
+            }
+        }
+
+        function createOrderCard(order, isServed = false) {
+            const statusColors = {
+                'PENDING': { bg: '#fef3c7', text: '#92400e', label: 'En attente' },
+                'PREPARING': { bg: '#dbeafe', text: '#1e40af', label: 'En préparation' },
+                'SERVED': { bg: '#dcfce7', text: '#15803d', label: 'Servie' },
+                'ARCHIVED': { bg: '#f3f4f6', text: '#4b5563', label: 'Archivée' }
+            };
+            
+            const statusInfo = statusColors[order.status] || statusColors['PENDING'];
+            
+            const actionButtons = !isServed
+                ? (order.status === 'PENDING'
+                    ? `<button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="updateOrderStatus(${order.id}, 'PREPARING')">Commencer la préparation</button>`
+                    : order.status === 'PREPARING'
+                    ? `<button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="updateOrderStatus(${order.id}, 'SERVED')">Marquer comme servie</button>`
+                    : '')
+                : '';
+            
+            const itemsHTML = order.items && order.items.length > 0
+                ? order.items.map(item => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f9fafb; border-radius: 0.375rem; margin-bottom: 0.5rem;">
+                        <div style="flex: 1;">
+                            <p style="font-weight: 500; color: #111827; margin: 0;">${item.quantity}x ${item.name}</p>
+                        </div>
+                        <p style="font-weight: 600; color: #f97316; margin: 0;">${(item.subtotal || 0).toFixed(2)} fbu</p>
+                    </div>
+                `).join('')
+                : '<p style="color: #9ca3af; font-size: 0.875rem; margin: 0;">Aucun article</p>';
+            
+            return `
+                <div class="card" style="${isServed ? 'opacity: 0.8; background: #f9fafb;' : ''}">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.25rem;">
+                        <div>
+                            <h3 style="font-size: 1.375rem; font-weight: 700; color: #111827; margin: 0;">Table ${order.tableNumber}</h3>
+                            <p style="font-size: 0.8rem; color: #6b7280; margin: 0.25rem 0 0 0;">🕐 ${order.time}</p>
+                        </div>
+                        <div style="background: ${statusInfo.bg}; color: ${statusInfo.text}; padding: 0.5rem 0.875rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.8125rem; white-space: nowrap;">
+                            ${statusInfo.label}
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fff9f5; border: 1px solid #fed7aa; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                        <p style="font-size: 0.8125rem; font-weight: 600; color: #92400e; margin: 0 0 0.75rem 0; text-transform: uppercase;">📦 Articles (${order.itemCount})</p>
+                        ${itemsHTML}
+                    </div>
+                    
+                    <div style="border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #374151; font-size: 0.95rem;">TOTAL</span>
+                            <span style="font-size: 1.5rem; font-weight: 700; color: ${isServed ? '#6b7280' : '#f97316'};">
+                                ${order.totalPrice.toFixed(2)} fbu
+                            </span>
+                        </div>
+                    </div>
+                    
+                    ${actionButtons}
+                </div>
+            `;
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!response.ok) throw new Error('Erreur mise à jour');
+
+                const statusTexts = {
+                    'PREPARING': 'en préparation',
+                    'SERVED': 'servie'
+                };
+                
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    order.status = newStatus;
+                    
+                    // Emit Socket.IO events
+                    if (newStatus === 'PREPARING') {
+                        socket.emit('order_preparing', {
+                            order_id: orderId,
+                            table_number: order.tableNumber,
+                            status: newStatus
+                        });
+                    } else if (newStatus === 'SERVED') {
+                         // Generate invoice automatically
+                        generateInvoice(order);
+                        socket.emit('order_served', {
+                            order_id: orderId,
+                            table_number: order.tableNumber,
+                            status: newStatus
+                        });
+                        
+                    }
+                }
+                
+                showToast(`✓ Table ${orders.find(o => o.id === orderId)?.tableNumber} ${statusTexts[newStatus]}`, 'success');
+                loadOrders(); // Rafraîchir les commandes
+            } catch (err) {
+                console.error('Erreur:', err);
+                showToast('Erreur lors de la mise à jour', 'error');
+            }
+        }
+
+        function generateInvoice(order) {
+            const now = new Date();
+            const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(invoiceCounter).padStart(4, '0')}`;
+            
+            const invoice = {
+                id: invoiceCounter,
+                invoiceNumber,
+                tableNumber: order.tableNumber,
+                items: order.items || [],
+                totalPrice: order.totalPrice,
+                date: now.toLocaleDateString('fr-FR'),
+                time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            invoices.unshift(invoice);
+            invoiceCounter++;
+            
+            showToast(`📄 Facture ${invoice.invoiceNumber} générée automatiquement`);
+            renderInvoices();
+        }
+
+        // Socket.io event listeners
+        socket.on('new_order_notification', (data) => {
+            // Jouer le son d'alerte pour la nouvelle commande
+            playOrderNotificationSound();
+            
+            // Afficher le message sans son (le son est déjà joué ci-dessus)
+            showToast(`🔔 NOUVELLE COMMANDE! Table ${data.table_number} - ${data.items.length} article(s) - ${data.total?.toFixed(2) || 0} fbu`, 'success');
+            loadOrders(); // Charger les nouvelles commandes immédiatement
+        });
+
+        // Auto-refresh orders every 3 seconds
+        setInterval(loadOrders, 3000);

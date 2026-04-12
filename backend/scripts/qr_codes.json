@@ -1,0 +1,20 @@
+[
+  {
+    "table_number": 1,
+    "qr_code": "TABLE_1",
+    "client_url": "http://192.168.0.120:5000/client/?qr=TABLE_1",
+    "qr_image_url": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=http%3A%2F%2F192.168.0.120%3A5000%2Fclient%2F%3Fqr%3DTABLE_1"
+  },
+  {
+    "table_number": 2,
+    "qr_code": "TABLE_2",
+    "client_url": "http://192.168.0.120:5000/client/?qr=TABLE_2",
+    "qr_image_url": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=http%3A%2F%2F192.168.0.120%3A5000%2Fclient%2F%3Fqr%3DTABLE_2"
+  },
+  {
+    "table_number": 3,
+    "qr_code": "TABLE_3",
+    "client_url": "http://192.168.0.120:5000/client/?qr=TABLE_3",
+    "qr_image_url": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=http%3A%2F%2F192.168.0.120%3A5000%2Fclient%2F%3Fqr%3DTABLE_3"
+  }
+]

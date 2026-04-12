@@ -1,8 +1,8 @@
 const pool = require('../config/db');
 
-// Récupérer tous les plats du menu
+// Récupérer tous les plats du menu (actifs uniquement pour le client)
 const getAllMenu = async () => {
-  const res = await pool.query('SELECT * FROM menu ORDER BY id');
+  const res = await pool.query('SELECT * FROM menu WHERE is_active = true ORDER BY id');
   return res.rows;
 };
 
@@ -35,6 +35,17 @@ const updateMenuItem = async (id, name, description, price, is_active, image_url
   return res.rows[0];
 };
 
+// Vérifier si un article a des commandes actives
+const checkActiveOrders = async (id) => {
+  const res = await pool.query(
+    `SELECT COUNT(*) as count FROM order_items oi
+     JOIN orders o ON oi.order_id = o.id
+     WHERE oi.menu_id = $1 AND o.status IN ('PENDING', 'PREPARING')`,
+    [id]
+  );
+  return parseInt(res.rows[0]?.count || 0);
+};
+
 // Supprimer un plat
 const deleteMenuItem = async (id) => {
   const res = await pool.query(
@@ -44,4 +55,4 @@ const deleteMenuItem = async (id) => {
   return res.rows[0];
 };
 
-module.exports = { getAllMenu, getMenuById, createMenuItem, updateMenuItem, deleteMenuItem };
+module.exports = { getAllMenu, getMenuById, createMenuItem, updateMenuItem, deleteMenuItem, checkActiveOrders };

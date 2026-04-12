@@ -20,5 +20,4 @@ router.put(
 
 router.delete('/:id', menuController.deleteMenuItem); // Supprimer plat
 
-
 module.exports = router;
