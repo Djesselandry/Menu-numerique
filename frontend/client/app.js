@@ -45,13 +45,11 @@
     // State
     let cart = [];
     let selectedCategory = 'Tous';
-<<<<<<< HEAD
     let activeOrderId = null;
     let pollingInterval = null;
     let lastOrderStatus = null;
     let audioCtx = null;
     let tableIdFromUrl = null;
-=======
     let currentTableNumber = null;
     let currentQRCode = null;
 
@@ -66,11 +64,11 @@
         const tableMatch = qrCode.match(/TABLE_(\d+)/i) || qrCode.match(/(\d+)/);
         if (tableMatch) {
           currentTableNumber = parseInt(tableMatch[1]);
+          tableIdFromUrl = currentTableNumber; // Pour compatibilité avec le code existant
         }
         console.log('Code QR détecté:', qrCode, 'Table:', currentTableNumber);
       }
     }
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
 
     // Icons SVG
     const icons = {
@@ -146,7 +144,6 @@
     }
 
     function handleOrder() {
-<<<<<<< HEAD
       if (cart.length === 0) {
         showToast('Votre panier est vide', 'info');
         return;
@@ -349,15 +346,6 @@
     function closeTableModal() {
       document.getElementById('tableModal').classList.remove('visible');
       document.getElementById('tableNumberInput').value = '';
-=======
-      // Si le client a un code QR, soumettre directement
-      if (currentQRCode) {
-        submitOrder();
-      } else {
-        // Sinon, ouvrir le modal pour demander le numéro de table
-        openTableModal();
-      }
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
     }
 
     function openTableModal() {
