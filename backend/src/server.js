@@ -8,6 +8,7 @@ const os = require('os');
 const menuRoutes = require('./routes/menuRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const tableRoutes = require('./routes/tableRoutes');
+const authRoutes = require('./routes/authRoutes');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -114,8 +115,8 @@ app.use((req, res, next) => {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// rendre uploads accessibles
-app.use("/uploads", express.static("uploads"));
+// rendre uploads accessibles (chemin absolu)
+app.use("/uploads", express.static(path.join(__dirname, 'uploads')));
 // servir le frontend client sur root ET sur /client
 app.use(express.static(path.join(__dirname, '../../frontend/client')));
 app.use("/client", express.static(path.join(__dirname, '../../frontend/client')));
@@ -126,6 +127,7 @@ app.use("/admin", express.static(path.join(__dirname, '../../frontend/admin')));
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/tables', tableRoutes);
+app.use('/api/auth', authRoutes);
 
 // servir index.html pour les routes non-API
 app.get('/', (req, res) => {
