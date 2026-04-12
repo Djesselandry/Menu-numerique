@@ -1,26 +1,52 @@
 const pool = require('../config/db');
 
 // Créer une nouvelle commande
-const createOrder = async (tableNumber, items) => {
+const createOrder = async (tableNumber, qrCode, items) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // 1. Vérifier ou créer la table
-    const tableResult = await client.query(
-      'SELECT id FROM tables WHERE table_number = $1',
-      [tableNumber]
-    );
-
     let tableId;
-    if (tableResult.rows.length === 0) {
-      const newTable = await client.query(
-        'INSERT INTO tables (table_number) VALUES ($1) RETURNING id',
+    let finalTableNumber = tableNumber;
+
+    // 1. Vérifier ou créer la table
+    if (qrCode) {
+      // Si le code QR est fourni, le chercher dans la base de données
+      const tableResult = await client.query(
+        'SELECT id, table_number FROM tables WHERE qr_code = $1',
+        [qrCode]
+      );
+
+      if (tableResult.rows.length === 0) {
+        // Si le code QR n'existe pas, créer une nouvelle table avec ce code QR
+        const newTable = await client.query(
+          'INSERT INTO tables (qr_code) VALUES ($1) RETURNING id, table_number',
+          [qrCode]
+        );
+        tableId = newTable.rows[0].id;
+        finalTableNumber = newTable.rows[0].table_number;
+      } else {
+        tableId = tableResult.rows[0].id;
+        finalTableNumber = tableResult.rows[0].table_number;
+      }
+    } else if (tableNumber) {
+      // Si le numéro de table est fourni, utiliser le système existant
+      const tableResult = await client.query(
+        'SELECT id FROM tables WHERE table_number = $1',
         [tableNumber]
       );
-      tableId = newTable.rows[0].id;
+
+      if (tableResult.rows.length === 0) {
+        const newTable = await client.query(
+          'INSERT INTO tables (table_number) VALUES ($1) RETURNING id',
+          [tableNumber]
+        );
+        tableId = newTable.rows[0].id;
+      } else {
+        tableId = tableResult.rows[0].id;
+      }
     } else {
-      tableId = tableResult.rows[0].id;
+      throw new Error('Numéro de table ou code QR requis');
     }
 
     // 2. Calculer le total
@@ -51,6 +77,7 @@ const createOrder = async (tableNumber, items) => {
 
     return {
       ...order,
+      table_number: finalTableNumber,
       items: items
     };
   } catch (err) {

@@ -3,16 +3,17 @@ const Order = require('../models/orderModel');
 // POST /api/orders - Créer une nouvella commande
 const createOrder = async (req, res) => {
   try {
-    const { tableNumber, items } = req.body;
+    const { tableNumber, qrCode, items } = req.body;
 
-    if (!tableNumber || !items || items.length === 0) {
+    // Vérifier que soit le numéro de table soit le code QR est fourni
+    if ((!tableNumber && !qrCode) || !items || items.length === 0) {
       return res.status(400).json({
         error: 'Données invalides',
-        details: { tableNumber, items }
+        details: { tableNumber, qrCode, items }
       });
     }
 
-    const order = await Order.createOrder(tableNumber, items);
+    const order = await Order.createOrder(tableNumber, qrCode, items);
     res.status(201).json(order);
   } catch (err) {
     console.error(err);

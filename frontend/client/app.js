@@ -1,11 +1,20 @@
 
+    // Configuration du serveur - Gestion automatique de l'URL
+    let SERVER_URL = window.location.origin;
+    
+    // En développement local, utiliser l'IP locale
+    if (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1') {
+      // Le serveur servira depuis la racine
+      SERVER_URL = window.location.origin;
+    }
+
     // Socket.io initialization
-    const socket = io();
+    const socket = io(SERVER_URL);
     
     // Data
     async function loadMenuFromAPI() {
   try {
-    const res = await fetch("/api/menu");
+    const res = await fetch(SERVER_URL + "/api/menu");
     const data = await res.json();
 
     // Adapter les données backend → frontend
@@ -14,7 +23,7 @@
       name: item.name,
       description: item.description || "Description non disponible",
       price: Number(item.price),
-      image: item.image_url ? `/uploads${item.image_url}` : '/assets/images/placeholder.png',
+      image: item.image_url ? SERVER_URL + `/uploads${item.image_url}` : SERVER_URL + '/assets/images/placeholder.png',
       category: item.category || "Tous",
       popular: item.popular || false
     }));
@@ -35,6 +44,23 @@
     let cart = [];
     let selectedCategory = 'Tous';
     let currentTableNumber = null;
+    let currentQRCode = null;
+
+    // Initialiser avec le code QR depuis l'URL
+    function initializeFromQR() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const qrCode = urlParams.get('qr');
+      
+      if (qrCode) {
+        currentQRCode = qrCode;
+        // Optionnel: extraire le numéro de table du code QR si au format TABLE_X
+        const tableMatch = qrCode.match(/TABLE_(\d+)/i) || qrCode.match(/(\d+)/);
+        if (tableMatch) {
+          currentTableNumber = parseInt(tableMatch[1]);
+        }
+        console.log('Code QR détecté:', qrCode, 'Table:', currentTableNumber);
+      }
+    }
 
     // Icons SVG
     const icons = {
@@ -110,8 +136,13 @@
     }
 
     function handleOrder() {
-      // Ouvrir le modal pour demander le numéro de table
-      openTableModal();
+      // Si le client a un code QR, soumettre directement
+      if (currentQRCode) {
+        submitOrder();
+      } else {
+        // Sinon, ouvrir le modal pour demander le numéro de table
+        openTableModal();
+      }
     }
 
     function openTableModal() {
@@ -127,17 +158,26 @@
     }
 
     async function submitOrder() {
-      const tableNumber = parseInt(document.getElementById('tableNumberInput').value, 10);
-      
-      if (!tableNumber || tableNumber <= 0) {
-        showToast('Veuillez entrer un numéro de table valide', 'error');
-        return;
+      let tableNumber = null;
+      let qrCode = null;
+
+      // Si le client a un code QR, l'utiliser
+      if (currentQRCode) {
+        qrCode = currentQRCode;
+        tableNumber = currentTableNumber;
+      } else {
+        // Sinon, obtenir le numéro de table depuis le modal
+        tableNumber = parseInt(document.getElementById('tableNumberInput').value, 10);
+        
+        if (!tableNumber || tableNumber <= 0) {
+          showToast('Veuillez entrer un numéro de table valide', 'error');
+          return;
+        }
       }
 
       try {
         // Préparer les données de la commande
         const orderData = {
-          tableNumber: tableNumber,
           items: cart.map(cartItem => ({
             id: cartItem.item.id,
             name: cartItem.item.name,
@@ -146,8 +186,15 @@
           }))
         };
 
+        // Ajouter soit le code QR soit le numéro de table
+        if (qrCode) {
+          orderData.qrCode = qrCode;
+        } else {
+          orderData.tableNumber = tableNumber;
+        }
+
         // Envoyer la commande au serveur
-        const response = await fetch('/api/orders', {
+        const response = await fetch(SERVER_URL + '/api/orders', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -184,6 +231,12 @@
 
     // Permettre Enter pour soumettre le formulaire
     document.addEventListener('DOMContentLoaded', () => {
+      // Initialiser avec le code QR depuis l'URL
+      initializeFromQR();
+      
+      // Charger le menu
+      loadMenuFromAPI();
+      
       const tableInput = document.getElementById('tableNumberInput');
       if (tableInput) {
         tableInput.addEventListener('keypress', (e) => {
