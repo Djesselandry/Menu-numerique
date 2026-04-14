@@ -1,276 +1,119 @@
-# 🍽️ Menu Numérique - Système de Commande en Réseau Local
+# 🍽️ Menu Numérique - Restaurant Digital Menu System
 
-## 📋 Vue d'ensemble
-
-**Menu Numérique** est un système de commande de restaurant 100% fonctionnel en réseau local, sans Internet requis.
-
-### Caractéristiques Principales ✨
-
-- ✅ **Codes QR Dynamiques** - Valides quels que soient les changements réseau
-- ✅ **Zéro Internet** - Fonctionne complètement en local
-- ✅ **Temps Réel** - WebSocket pour notifications instantanées
-- ✅ **Multi-Plateforme** - Fonctionne sur tous les appareils
-- ✅ **Aucune Installation Client** - Juste scanner et utiliser
+Système de gestion de menu numérique pour restaurants avec commande via code QR.
 
 ## 🚀 Démarrage Rapide
 
-### 1. Installation
-```bash
-cd "c:\Users\Landry\Menu numerique"
-npm install
-```
+### Prérequis
+- Node.js 14+
+- PostgreSQL 12+
+- npm
 
-### 2. Démarrage du Serveur
+### Installation
+
 ```bash
+# Installer les dépendances
+npm install
+
+# Configurer les variables d'environnement
+cp .env.example .env
+
+# Démarrer le serveur
 npm start
 ```
 
-Vous verrez:
-```
-✅ Server running on port 5000
-✅ Database connected
-✅ Local IP: 192.168.1.5  ← Notez cette IP!
-✅ Access at: http://192.168.1.5:5000
-```
+Le serveur démarre sur `http://192.168.0.120:5000`
 
-### 3. Accéder aux Codes QR
-Ouvrez dans votre navigateur:
-```
-http://192.168.1.5:5000/qr_setup
-```
+## 📱 Accès aux Interfaces
 
-### 4. Test Rapide
-Ouvrez sur votre téléphone connecté au même WiFi:
-```
-http://192.168.1.5:5000/client/?qr=TABLE_1
-```
+- **Admin**: http://192.168.0.120:5000/admin/
+  - Gérer le menu (ajouter, éditer, supprimer plats)
+  - Upload d'images
+  - Gérer les commandes
 
-## 📱 Utilisation
+- **Client**: http://192.168.0.120:5000/client/
+  - Consulter le menu
+  - Ajouter au panier
+  - Passer des commandes
 
-### Pour les Clients
-1. Scannez le code QR sur votre table
-2. Parcourez le menu
-3. Sélectionnez vos articles
-4. Confirmez votre commande
-5. Attendez la notification quand c'est prêt
-
-### Pour l'Admin
-1. Accédez à `http://[IP]:5000/admin`
-2. Voyez les commandes en temps réel
-3. Gérez l'état des commandes
-4. Les clients sont notifiés instantanément
-
-## 🔧 Configuration
-
-### Variables d'Environnement
-```
-PORT=5000                    # Port du serveur (défaut: 5000)
-NODE_ENV=development        # development ou production
-DB_HOST=localhost          # Hôte PostgreSQL
-DB_PORT=5432              # Port PostgreSQL
-DB_NAME=menu_numeric       # Nom de la base
-DB_USER=postgres           # Utilisateur DB
-DB_PASSWORD=              # Password (optionnel en dev)
-```
-
-### Modifier le Nombre de Tables
-Dans `frontend/client/qr_setup.html`:
-```javascript
-for (let i = 1; i <= 10; i++) {  // ← Changez 10 au nombre de tables
-```
-
-## 📂 Structure du Projet
+## 🏗️ Architecture
 
 ```
-Menu numerique/
-├── backend/
-│   ├── src/
-│   │   ├── server.js                    # Serveur Express principal
-│   │   ├── config/db.js                 # Configuration PostgreSQL
-│   │   ├── controller/
-│   │   │   ├── authController.js
-│   │   │   ├── menuController.js
-│   │   │   ├── orderController.js
-│   │   │   └── tableController.js        # 🔥 Gestion QR
-│   │   ├── models/
-│   │   │   ├── menuModel.js
-│   │   │   ├── orderModel.js
-│   │   │   ├── userModel.js
-│   │   │   └── tableModel.js            # 🔥 Nouveau
-│   │   ├── routes/
-│   │   │   ├── authRoutes.js
-│   │   │   ├── menuRoutes.js
-│   │   │   ├── orderRoutes.js
-│   │   │   └── tableRoutes.js           # 🔥 Nouveau
-│   │   └── [...autres fichiers...]
-│   └── uploads/
-├── frontend/
-│   ├── client/
-│   │   ├── app.js                       # Menu client
-│   │   ├── index.html
-│   │   ├── qr_setup.html                # 🔥 Codes QR (NOUVEAU)
-│   │   └── styles.css
-│   └── admin/
-│       ├── app.js                       # Panel admin
-│       ├── index.html
-│       └── styles.css
-├── database/
-│   └── schema.sql                       # Structure PostgreSQL
-├── documentation/
-│   ├── README.md
-│   ├── DYNAMIC_IP_SOLUTION.md           # 🔥 Solution IP dynamique
-│   ├── GUIDE_CODES_QR_DYNAMIQUES.md    # 🔥 Guide pratique
-│   └── [autres docs...]
-└── testDynamicQR.js                     # 🔥 Script de test
+backend/
+  ├── src/
+  │   ├── server.js          # Application principale
+  │   ├── config/            # Configuration DB
+  │   ├── controller/        # Contrôleurs API
+  │   ├── models/            # Modèles de données
+  │   ├── routes/            # Routes API
+  │   ├── middlewares/       # Upload, auth
+  │   └── uploads/           # Images des plats
+  └── scripts/
+      └── generateQRCodes.js # Génération codes QR
+
+frontend/
+  ├── admin/                 # Interface admin
+  └── client/                # Interface client
+
+database/
+  └── schema.sql            # Schéma PostgreSQL
 ```
 
-## 🎯 Fonctionnalités Principales
+## 🔗 API Endpoints
 
-### 1. Système QR Dynamique 🔥 NOUVEAU
-- **Problème résolu**: Les codes QR restaient figés quand l'IP changeait
-- **Solution**: Les codes QR sont générés dynamiquement basés sur l'IP actuelle
-- **Résultat**: Les codes QR restent valides même si le réseau change
+### Menu
+- `GET /api/menu` - Récupérer tous les plats
+- `POST /api/menu` - Créer un plat (admin)
+- `PUT /api/menu/:id` - Modifier un plat (admin)
+- `DELETE /api/menu/:id` - Supprimer un plat (admin)
 
-**Voir:** [DYNAMIC_IP_SOLUTION.md](DYNAMIC_IP_SOLUTION.md)
+### Commandes
+- `GET /api/orders` - Récupérer les commandes
+- `POST /api/orders` - Créer une commande (client)
+- `GET /api/orders/:id` - Détails d'une commande
 
-### 2. Interface Client
-- Menu complet avec images
-- Recherche et filtrage
-- Gestion du panier
-- Passage de commande avec détails
+### Tables
+- `GET /api/tables` - Récupérer les tables
 
-### 3. Panel Admin
-- Tableau de bord en temps réel
-- Notifications Socket.io
-- Gestion des commandes
-- Historique des commandes
+### Authentication
+- `POST /api/auth/login` - Login admin
 
-### 4. Système de Stockage
-- PostgreSQL pour la persistance
-- Tables: users, menus, orders, tables
-- Migrations SQL automatiques
+## ⚙️ Configuration
 
-## 🌐 Architecture Réseau
+Éditer `.env` pour configurer:
+- Port serveur
+- Connexion PostgreSQL
+- Variables d'environnement
 
-```
-┌─────────────────────────────────────────┐
-│         WiFi Local (pas Internet)       │
-├─────────────────────────────────────────┤
-│                                         │
-│  📱 Clients (Tables 1-10)   🖥️ Admin   │
-│  ├─ Table 1                  │          │
-│  ├─ Table 2         ← connexion →      │
-│  ├─ Table 3           Express           │
-│  └─ ...                Server            │
-│                        :5000             │
-│                         │                │
-│                      PostgreSQL          │
-│                      (base données)      │
-│                                         │
-└─────────────────────────────────────────┘
+## 📝 Features
 
-✅ Zéro Internet requis
-✅ Tous les appareils sur le même réseau WiFi
-✅ Port 5000 ouvert (remplacer si nécessaire)
-```
+- ✅ Menu digital avec images
+- ✅ Code QR par table
+- ✅ Système de commande
+- ✅ Admin dashboard
+- ✅ Support multilingue
+- ✅ Real-time updates (Socket.io)
 
-## 📖 Documentation Disponible
+## 🔐 Authentification
 
-| Document | Description |
-|----------|-------------|
-| [GUIDE_CODES_QR_DYNAMIQUES.md](GUIDE_CODES_QR_DYNAMIQUES.md) | 🔥 Guide pratique pour utiliser les QR |
-| [DYNAMIC_IP_SOLUTION.md](DYNAMIC_IP_SOLUTION.md) | Architecture et solution IP dynamique |
-| [QR_CODE_INTEGRATION.md](QR_CODE_INTEGRATION.md) | Détails techniques intégration QR |
-| [GUIDE_RESEAU_LOCAL.md](GUIDE_RESEAU_LOCAL.md) | Configuration réseau local |
-| [AUTH_README.md](AUTH_README.md) | Système d'authentification |
+**Admin Default:**
+- Username: admin
+- Password: admin (À CHANGER EN PRODUCTION)
 
-## 🧪 Tests et Diagnostics
+## 📦 Technologies
 
-### Tester le Système Dynamique QR
-```bash
-node testDynamicQR.js
-```
+- **Backend**: Express.js, Node.js
+- **Database**: PostgreSQL
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript
+- **Real-time**: Socket.io
+- **File Upload**: Multer
+- **QR Codes**: QR Server API
+- **Auth**: JWT
 
-Cela vérifie:
-- ✅ Détection IP locale
-- ✅ Connectivité serveur
-- ✅ Endpoint /api/config
-- ✅ Page qr_setup.html
-- ✅ API dynamique /api/tables/dynamic-qr/1
-- ✅ Interface client
+## 📄 License
 
-### Test Manuel
-```bash
-# 1. Vérifier API config
-curl http://192.168.1.5:5000/api/config
+MIT
 
-# 2. Vérifier QR dynamique
-curl http://192.168.1.5:5000/api/tables/dynamic-qr/1
+## 👥 Support
 
-# 3. Accéder à la page QR
-http://192.168.1.5:5000/qr_setup
-```
-
-## 🚨 Dépannage
-
-### Le serveur ne démarre pas
-```bash
-# 1. Vérifiez que Node.js est installé
-node --version
-
-# 2. Vérifiez que les packages sont installés
-npm install
-
-# 3. Vérifiez que PostgreSQL est en route
-# (ou utilisez SQLite au lieu en changeant db.js)
-```
-
-### Les clients ne peuvent pas accéder
-**Checklist:**
-1. ✅ Port 5000 est-il libre? (lsof -i :5000)
-2. ✅ Clients sur le même WiFi?
-3. ✅ L'IP dans le navigateur est-elle correcte?
-4. ✅ Le pare-feu bloque-t-il le port?
-
-### L'IP change mais les codes QR ne marchent plus
-**Solution:** Les codes QR sont désormais dynamiques!
-1. Accédez à `http://[NOUVELLE_IP]:5000/qr_setup`
-2. Les codes QR affichent la nouvelle IP automatiquement
-3. Aucun code n'est figé
-
-## 📝 Notes de Version
-
-### v1.2.0 - Codes QR Dynamiques (ACTUEL) 🔥
-- ✅ Codes QR générés dynamiquement basés sur l'IP actuelle
-- ✅ Pas de fichier qr_codes.json figé
-- ✅ API /api/tables/dynamic-qr/:tableNumber
-- ✅ Page qr_setup.html avec grille interactive
-- ✅ Adaptation automatique aux changements de réseau
-
-### v1.1.0 - Configuration Locale
-- ✅ Système QR intégré
-- ✅ Écoute sur 0.0.0.0 pour tous les interfaces
-- ✅ Détection IP automatique
-- ✅ Documentation complète en français
-
-### v1.0.0 - Initial
-- ✅ Système de commande de base
-- ✅ Menu et admin en local
-- ✅ WebSocket temps réel
-
-## 🤝 Support et Questions
-
-Pour des questions spécifiques:
-- **IPs dynamiques**: Voir [DYNAMIC_IP_SOLUTION.md](DYNAMIC_IP_SOLUTION.md)
-- **Guide pratique**: Voir [GUIDE_CODES_QR_DYNAMIQUES.md](GUIDE_CODES_QR_DYNAMIQUES.md)
-- **Réseau local**: Voir [GUIDE_RESEAU_LOCAL.md](GUIDE_RESEAU_LOCAL.md)
-
-## 📜 Licence
-
-Propriété personnelle - Utilisation interne restaurant
-
----
-
-**🎉 Système prêt pour production!**
-
-Pour démarrer: `npm start` puis accédez à `http://192.168.x.x:5000/qr_setup`
+Pour toute question ou problème, consultez la documentation ou contactez l'administrateur.
