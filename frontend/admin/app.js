@@ -1,35 +1,23 @@
-        // ===== AUTHENTICATION SYSTEM =====
-        const AUTH_TOKEN_KEY = 'adminToken';
-        const API_URL = 'http://localhost:5000/api';
-
-<<<<<<< HEAD
-        // Data
-        let orders = [];
-        let isFirstLoad = true;
-=======
-        // Socket.io initialization
-        const socket = io();
-
-        // Authentication Elements
+        // ===== DOM ELEMENTS =====
         const loginScreen = document.getElementById('login-screen');
         const dashboard = document.getElementById('dashboard');
         const loginForm = document.getElementById('login-form');
         const loginUsernameInput = document.getElementById('login-username');
         const loginPasswordInput = document.getElementById('login-password');
         const loginSubmitBtn = document.getElementById('login-submit-btn');
-        const logoutBtn = document.getElementById('logout-btn');
         const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
 
-        // Auth initialization
-        function initializeAuth() {
-            const token = localStorage.getItem(AUTH_TOKEN_KEY);
-            if (token) {
-                showDashboard();
-            } else {
-                showLoginScreen();
-            }
-        }
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
+        // ===== AUTHENTICATION SYSTEM =====
+        const AUTH_TOKEN_KEY = 'adminToken';
+        const API_URL = window.location.origin + '/api';
+
+        // Socket.io connection
+        const socket = io(window.location.origin);
+
+        // Data
+        let isFirstLoad = true;
+        let orders = [];
 
         function showLoginScreen() {
             loginScreen.classList.add('active');
@@ -133,7 +121,6 @@
 
         // ===== DASHBOARD CODE =====
         // Data
-        let orders = [];
         let menuItems = [];
         let invoices = [];
         let invoiceCounter = 1;
@@ -144,7 +131,7 @@
         async function loadMenuFromAPI() {
             try {
                 // Charger TOUS les plats (y compris inactifs) pour l'admin
-                const res = await fetch("/api/menu");
+                const res = await fetch(API_URL + "/menu");
                 const activePlats = await res.json();
                 
                 // Charger aussi les plats inactifs en faisant une requête spéciale
@@ -170,7 +157,13 @@
             }
         }
 
-<<<<<<< HEAD
+        // Charger tous les plats pour l'admin (incluant ceux inactifs)
+        async function loadAllMenuItemsForAdmin() {
+            // Pour l'instant, les plats actifs suffisent
+            // Cette fonction peut être étendue pour charger aussi les plats inactifs
+            // et d'autres données d'administration
+        }
+
         // Charger les commandes depuis l'API
         async function loadOrdersFromAPI() {
             try {
@@ -203,30 +196,18 @@
             } catch (error) {
                 console.error("Erreur chargement commandes :", error);
                 showToast("Impossible de charger les commandes");
-=======
-        async function loadAllMenuItemsForAdmin() {
-            try {
-                // Cette fonction charge TOUS les plats côté admin
-                const token = localStorage.getItem(AUTH_TOKEN_KEY);
-                const res = await fetch("/api/menu/admin/all", {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }).catch(() => null);
-                
-                if (res && res.ok) {
-                    const data = await res.json();
-                    menuItems = data.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        description: item.description || "",
-                        price: Number(item.price),
-                        image: item.image_url ? `/uploads${item.image_url}` : 'https://via.placeholder.com/400x300?text=Menu',
-                        category: item.category || "Autres",
-                        available: item.is_active || true
-                    }));
-                }
-            } catch (err) {
-                console.log('Admin menu load fallback - using active items only');
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
+            }
+        }
+
+        // Initialize authentication state
+        function initializeAuth() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (token) {
+                // Token exists, show dashboard
+                showDashboard();
+            } else {
+                // No token, show login
+                showLoginScreen();
             }
         }
 
@@ -236,11 +217,7 @@
             updateDate();
             setupTabs();
             loadMenuFromAPI();
-<<<<<<< HEAD
             loadOrdersFromAPI();
-=======
-            loadOrders();
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
             renderInvoices();
             setupSearch();
             
@@ -396,7 +373,6 @@
             }
         }
 
-<<<<<<< HEAD
         function createOrderCard(order, isServed = false) {
             const statusClass = {
                 pending: 'badge-yellow',
@@ -545,8 +521,6 @@
             }
         }
 
-=======
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
         // Menu Functions
         function renderMenu() {
             const categories = ['Tous', ...new Set(menuItems.map(item => item.category))];
@@ -616,7 +590,6 @@
             renderMenu();
         }
 
-<<<<<<< HEAD
         async function toggleAvailability(id) {
             const item = menuItems.find(i => i.id === id);
             if (!item) return;
@@ -647,84 +620,6 @@
                 showToast("Impossible de modifier le statut", "error");
                 renderMenu(); // Annuler le changement visuel en cas d'erreur
             }
-=======
-        function toggleMenuItemActive(id, makeActive) {
-            const item = menuItems.find(i => i.id === id);
-            if (!item) return;
-            
-            fetch(`/api/menu/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: item.name,
-                    description: item.description,
-                    price: item.price,
-                    category: item.category,
-                    available: makeActive
-                })
-            })
-            .then(res => {
-                if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-                return res.json();
-            })
-            .then(data => {
-                item.available = data.is_active;
-                showToast(`${item.name} ${data.is_active ? 'activé' : 'désactivé'}`);
-                renderMenu();
-            })
-            .catch(err => {
-                console.error('Error toggleMenuItemActive:', err);
-                showToast('Erreur lors de la mise à jour', 'error');
-            });
-        }
-
-        function toggleAvailability(id) {
-            const item = menuItems.find(i => i.id === id);
-            if (!item) return;
-            
-            // Inverser la disponibilité
-            const newAvailable = !item.available;
-            
-            console.log('toggleAvailability - ID:', id, 'Current:', item.available, 'New:', newAvailable);
-            
-            // Appel API pour mettre à jour
-            fetch(`/api/menu/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: item.name,
-                    description: item.description,
-                    price: item.price,
-                    category: item.category,
-                    available: newAvailable
-                })
-            })
-            .then(res => {
-                console.log('PUT Response Status:', res.status);
-                if (!res.ok) {
-                    throw new Error(`Erreur HTTP ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log('PUT Response:', data);
-                if (data) {
-                    item.available = data.is_active !== undefined ? data.is_active : newAvailable;
-                    showToast(`${item.name} ${item.available ? 'activé' : 'désactivé'}`);
-                    renderMenu();
-                } else {
-                    throw new Error('Réponse vide du serveur');
-                }
-            })
-            .catch(err => {
-                console.error('Error PUT:', err);
-                showToast('Erreur lors de la mise à jour', 'error');
-            });
->>>>>>> a3e295a951324328817e9eccd4c712206ddca7b9
         }
 
         function openMenuModal(item = null) {
@@ -820,7 +715,7 @@
 
         function deleteMenuItem(id, name) {
             if (confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) {
-                fetch(`/api/menu/${id}`, { method: 'DELETE' })
+                fetch(API_URL + `/menu/${id}`, { method: 'DELETE' })
                     .then(res => {
                         console.log('DELETE Response Status:', res.status);
                         return res.json().then(data => ({ status: res.status, data }));
@@ -890,13 +785,13 @@
                         formData.append('available', available);
                         formData.append('image', imageInput.files[0]);
                         
-                        res = await fetch(`/api/menu/${editingItemId}`, {
+                        res = await fetch(API_URL + `/menu/${editingItemId}`, {
                             method: 'PUT',
                             body: formData
                         });
                     } else {
                         // Sans image - envoyer JSON
-                        res = await fetch(`/api/menu/${editingItemId}`, {
+                        res = await fetch(API_URL + `/menu/${editingItemId}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -938,7 +833,7 @@
                         formData.append('image', imageInput.files[0]);
                     }
                     
-                    const res = await fetch('/api/menu', {
+                    const res = await fetch(API_URL + '/menu', {
                         method: 'POST',
                         body: formData
                     });

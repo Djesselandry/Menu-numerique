@@ -190,7 +190,7 @@
       };
     
       // Send the order data to the backend
-      fetch('/api/orders', {
+      fetch(SERVER_URL + '/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -230,7 +230,7 @@
       // Vérifier le statut toutes les 3 secondes
       pollingInterval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/orders/${orderId}`);
+          const res = await fetch(SERVER_URL + `/api/orders/${orderId}`);
           if (!res.ok) return;
           const order = await res.json();
           
@@ -330,7 +330,7 @@
             <input type="number" id="tableNumberInput" class="table-input" placeholder="Ex: 5" min="1">
             <div class="modal-actions">
               <button class="btn-cancel" onclick="closeTableModal()">Annuler</button>
-              <button class="btn-confirm" onclick="submitOrder()">Valider</button>
+              <button class="btn-confirm" onclick="submitOrderFromModal()">Valider</button>
             </div>
           </div>
         </div>
@@ -360,7 +360,7 @@
       document.getElementById('overlay').classList.remove('visible');
     }
 
-    async function submitOrder() {
+    async function submitOrderFromModal() {
       let tableNumber = null;
       let qrCode = null;
 
@@ -379,22 +379,17 @@
       }
 
       try {
-        // Préparer les données de la commande
+        // Préparer les données de la commande dans le format attendu par l'API
         const orderData = {
+          table_id: tableNumber,
           items: cart.map(cartItem => ({
-            id: cartItem.item.id,
-            name: cartItem.item.name,
-            price: cartItem.item.price,
-            quantity: cartItem.quantity
-          }))
+            menu_id: cartItem.item.id,
+            quantity: cartItem.quantity,
+            unit_price: cartItem.item.price,
+            subtotal: cartItem.item.price * cartItem.quantity
+          })),
+          total: getTotalPrice()
         };
-
-        // Ajouter soit le code QR soit le numéro de table
-        if (qrCode) {
-          orderData.qrCode = qrCode;
-        } else {
-          orderData.tableNumber = tableNumber;
-        }
 
         // Envoyer la commande au serveur
         const response = await fetch(SERVER_URL + '/api/orders', {
@@ -417,13 +412,6 @@
         cart = [];
         renderMenu();
         updateCartBar();
-        
-        // Émettre l'événement socket pour notifier l'admin
-        socket.emit('new_order', {
-          table_number: tableNumber,
-          items: orderData.items,
-          total: result.total || orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-        });
         
         showToast(`✓ Commande confirmée pour la table ${tableNumber}!`, 'success');
       } catch (error) {

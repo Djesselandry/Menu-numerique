@@ -122,6 +122,8 @@ app.use(express.static(path.join(__dirname, '../../frontend/client')));
 app.use("/client", express.static(path.join(__dirname, '../../frontend/client')));
 // servir le frontend admin
 app.use("/admin", express.static(path.join(__dirname, '../../frontend/admin')));
+// servir la page test-frontend.html
+app.use(express.static(path.join(__dirname, '../../frontend')));
 
 // Routes
 app.use('/api/menu', menuRoutes);

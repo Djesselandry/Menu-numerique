@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend Complet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .test-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .test-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .test-result { margin-top: 10px; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 13px; overflow-x: auto; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .loading { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .status-icon { font-size: 20px; margin-right: 8px; }
+        .controls { text-align: center; margin-top: 30px; }
+        button { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .menu-item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px; background: #f9f9f9; }
+        .menu-item strong { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Complet du Frontend Menu Numérique</h1>
+        
+        <div class="controls">
+            <button onclick="runAllTests()">▶ Exécuter tous les tests</button>
+            <button onclick="clearAllTests()">🔄 Réinitialiser</button>
+        </div>
+
+        <div class="test-grid">
+            <!-- Test 1: API Config -->
+            <div class="test-card">
+                <div class="test-title">1️⃣ Config API</div>
+                <button onclick="testConfig()" style="width: 100%;">Tester</button>
+                <div id="config-result" class="test-result" style="display:none;"></div>
+            </div>
+
+            <!-- Test 2: Menu Loading -->
+            <div class="test-card">
+                <div class="test-title">2️⃣ Chargement Menu</div>
+                <button onclick="testMenu()" style="width: 100%;">Tester</button>
+                <div id="menu-result" class="test-result" style="display:none;"></div>
+            </div>
+
+            <!-- Test 3: Images -->
+            <div class="test-card">
+                <div class="test-title">3️⃣ Images</div>
+                <button onclick="testImages()" style="width: 100%;">Tester</button>
+                <div id="images-result" class="test-result" style="display:none;"></div>
+                <div id="images-preview" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Test 4: Admin Login -->
+            <div class="test-card">
+                <div class="test-title">4️⃣ Admin Login</div>
+                <button onclick="testAdminLogin()" style="width: 100%;">Tester</button>
+                <div id="login-result" class="test-result" style="display:none;"></div>
+            </div>
+
+            <!-- Test 5: Create Order -->
+            <div class="test-card">
+                <div class="test-title">5️⃣ Créer Commande</div>
+                <button onclick="testCreateOrder()" style="width: 100%;">Tester</button>
+                <div id="order-result" class="test-result" style="display:none;"></div>
+            </div>
+
+            <!-- Test 6: Get Order -->
+            <div class="test-card">
+                <div class="test-title">6️⃣ Récupérer Commande</div>
+                <button onclick="testGetOrder()" style="width: 100%;">Tester</button>
+                <div id="get-order-result" class="test-result" style="display:none;"></div>
+            </div>
+
+            <!-- Test 7: Frontend App.js Check -->
+            <div class="test-card">
+                <div class="test-title">7️⃣ Vérifier App.js</div>
+                <button onclick="testAppJs()" style="width: 100%;">Vérifier</button>
+                <div id="appjs-result" class="test-result" style="display:none;"></div>
+            </div>
+
+            <!-- Test 8: Console Logs -->
+            <div class="test-card">
+                <div class="test-title">8️⃣ Console Logs</div>
+                <button onclick="showConsoleLogs()" style="width: 100%;">Afficher</button>
+                <div id="console-result" class="test-result" style="display:none; max-height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let lastOrderId = null;
+        let consoleLogs = [];
+        
+        const SERVER_URL = window.location.origin;
+        
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            consoleLogs.push('✓ ' + JSON.stringify(args));
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            consoleLogs.push('✗ ' + JSON.stringify(args));
+            originalError.apply(console, args);
+        };
+
+        function showResult(elementId, success, message, details = '') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'test-result ' + (success ? 'success' : 'error');
+            element.innerHTML = `<span class="status-icon">${success ? '✅' : '❌'}</span> ${message}`;
+            if (details) {
+                element.innerHTML += `<pre style="margin-top: 10px;">${details}</pre>`;
+            }
+        }
+
+        async function testConfig() {
+            showResult('config-result', null, 'En cours...', '');
+            try {
+                const res = await fetch(SERVER_URL + '/api/config');
+                const data = await res.json();
+                showResult('config-result', true, 'Config API OK', JSON.stringify(data, null, 2));
+            } catch (err) {
+                showResult('config-result', false, 'Erreur: ' + err.message);
+            }
+        }
+
+        async function testMenu() {
+            showResult('menu-result', null, 'En cours...', '');
+            try {
+                const res = await fetch(SERVER_URL + '/api/menu');
+                const data = await res.json();
+                
+                let html = `<strong>✅ ${data.length} article(s) trouvé(s)</strong>`;
+                data.forEach(item => {
+                    html += `<div class="menu-item">
+                        <strong>${item.name}</strong> (ID: ${item.id})<br/>
+                        Prix: ${item.price}€ | Image: ${item.image_url}<br/>
+                        Actif: ${item.is_active ? 'Oui' : 'Non'}
+                    </div>`;
+                });
+                
+                document.getElementById('menu-result').innerHTML = html;
+                document.getElementById('menu-result').className = 'test-result success';
+                document.getElementById('menu-result').style.display = 'block';
+            } catch (err) {
+                showResult('menu-result', false, 'Erreur: ' + err.message);
+            }
+        }
+
+        async function testImages() {
+            showResult('images-result', null, 'En cours...', '');
+            try {
+                const res = await fetch(SERVER_URL + '/api/menu');
+                const data = await res.json();
+                
+                if (data.length === 0) {
+                    showResult('images-result', false, 'Aucun article dans le menu');
+                    return;
+                }
+                
+                const item = data[0];
+                const imageUrl = SERVER_URL + '/uploads' + item.image_url;
+                const imgRes = await fetch(imageUrl, {method: 'HEAD'});
+                
+                let html = `<strong>Image testée: ${item.name}</strong><br/>`;
+                html += `URL: ${imageUrl}<br/>`;
+                html += `Status: HTTP ${imgRes.status}<br/>`;
+                
+                if (imgRes.ok) {
+                    html += `<br/><img src="${imageUrl}" style="max-width: 100%; margin-top: 10px; border-radius: 4px;" />`;
+                    document.getElementById('images-result').innerHTML = html;
+                    document.getElementById('images-result').className = 'test-result success';
+                } else {
+                    html += '<br/>⚠️ Image non accessible!';
+                    document.getElementById('images-result').innerHTML = html;
+                    document.getElementById('images-result').className = 'test-result error';
+                }
+                document.getElementById('images-result').style.display = 'block';
+            } catch (err) {
+                showResult('images-result', false, 'Erreur: ' + err.message);
+            }
+        }
+
+        async function testAdminLogin() {
+            showResult('login-result', null, 'En cours...', '');
+            try {
+                const res = await fetch(SERVER_URL + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin' })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.token) {
+                    showResult('login-result', true, 'Login réussi!', 
+                        `User: ${data.user.username}\nToken: ${data.token.substring(0, 20)}...\nExpires: ${data.expiresAt}`);
+                } else {
+                    showResult('login-result', false, 'Login échoué: ' + (data.error || 'Erreur inconnue'));
+                }
+            } catch (err) {
+                showResult('login-result', false, 'Erreur: ' + err.message);
+            }
+        }
+
+        async function testCreateOrder() {
+            showResult('order-result', null, 'En cours...', '');
+            try {
+                const res = await fetch(SERVER_URL + '/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        table_id: Math.floor(Math.random() * 10) + 1,
+                        items: [{menu_id: 1, quantity: 1, unit_price: 5000, subtotal: 5000}],
+                        total: 5000
+                    })
+                });
+                
+                const data = await res.json();
+                lastOrderId = data.id;
+                
+                if (res.ok && data.id) {
+                    showResult('order-result', true, `Commande créée: ID ${data.id}`, 
+                        JSON.stringify(data, null, 2));
+                } else {
+                    showResult('order-result', false, 'Erreur création: ' + JSON.stringify(data));
+                }
+            } catch (err) {
+                showResult('order-result', false, 'Erreur: ' + err.message);
+            }
+        }
+
+        async function testGetOrder() {
+            if (!lastOrderId) {
+                showResult('get-order-result', false, 'Pas de commande créée. Créez une commande d\'abord.');
+                return;
+            }
+            
+            showResult('get-order-result', null, 'En cours...', '');
+            try {
+                const res = await fetch(SERVER_URL + `/api/orders/${lastOrderId}`);
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showResult('get-order-result', true, `Commande ${lastOrderId} récupérée`, 
+                        JSON.stringify(data, null, 2));
+                } else {
+                    showResult('get-order-result', false, 'Erreur: ' + JSON.stringify(data));
+                }
+            } catch (err) {
+                showResult('get-order-result', false, 'Erreur: ' + err.message);
+            }
+        }
+
+        function testAppJs() {
+            const resultEl = document.getElementById('appjs-result');
+            resultEl.style.display = 'block';
+            
+            let html = '<strong>Vérification App.js:</strong><br/>';
+            
+            // Vérifier les variables globales
+            const checks = [
+                {name: 'SERVER_URL défini', status: typeof SERVER_URL !== 'undefined', help: `Valeur: ${SERVER_URL}`},
+                {name: 'window.location.origin existe', status: typeof window.location.origin !== 'undefined', help: `Valeur: ${window.location.origin}`},
+            ];
+            
+            checks.forEach(check => {
+                html += `<br/>» ${check.name}: ${check.status ? '✅' : '❌'}<br/>`;
+                if (check.help) html += `&nbsp;&nbsp;&nbsp;${check.help}<br/>`;
+            });
+            
+            html += `<br/><strong>Détails de l'environnement:</strong><br/>`;
+            html += `» Protocole: ${window.location.protocol}<br/>`;
+            html += `» Hôte: ${window.location.host}<br/>`;
+            html += `» Origin: ${window.location.origin}<br/>`;
+            html += `» Pathname: ${window.location.pathname}<br/>`;
+            
+            resultEl.innerHTML = html;
+            resultEl.className = 'test-result info';
+        }
+
+        function showConsoleLogs() {
+            const resultEl = document.getElementById('console-result');
+            resultEl.style.display = 'block';
+            
+            if (consoleLogs.length === 0) {
+                resultEl.innerHTML = '<em>Aucun log pour le moment</em>';
+                resultEl.className = 'test-result info';
+            } else {
+                resultEl.innerHTML = consoleLogs.join('\n');
+                resultEl.className = 'test-result info';
+            }
+        }
+
+        async function runAllTests() {
+            await testConfig();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testMenu();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testImages();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testAdminLogin();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testCreateOrder();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testGetOrder();
+            await new Promise(r => setTimeout(r, 500));
+            
+            testAppJs();
+        }
+
+        function clearAllTests() {
+            ['config-result', 'menu-result', 'images-result', 'login-result', 
+             'order-result', 'get-order-result', 'appjs-result', 'console-result']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            lastOrderId = null;
+        }
+
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            console.log('Page test chargée');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Ajout Plat</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .form-group { margin: 15px 0; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            background: #f9f9f9;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success { border-color: green; background: #f0fff0; }
+        .error { border-color: red; background: #fff0f0; }
+    </style>
+</head>
+<body>
+    <h1>Test Ajout de Plat</h1>
+    
+    <form id="menuForm">
+        <div class="form-group">
+            <label for="name">Nom du plat:</label>
+            <input type="text" id="name" name="name" required placeholder="Ex: Pizza Margherita">
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" placeholder="Ex: Tomate, mozzarella, basilic">Délicieux plat</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="price">Prix:</label>
+            <input type="number" id="price" name="price" required value="10000" step="100">
+        </div>
+        
+        <div class="form-group">
+            <label for="category">Catégorie:</label>
+            <input type="text" id="category" name="category" placeholder="Ex: Pizzas" value="Plats">
+        </div>
+        
+        <div class="form-group">
+            <label for="image">Image (optionnelle):</label>
+            <input type="file" id="image" name="image" accept="image/*">
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="available" name="available" checked>
+                Actif
+            </label>
+        </div>
+        
+        <button type="submit">Ajouter le plat</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        const API_URL = window.location.origin + '/api';
+        
+        document.getElementById('menuForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('name', document.getElementById('name').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('price', document.getElementById('price').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('available', document.getElementById('available').checked);
+            
+            const imageFile = document.getElementById('image').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+            
+            try {
+                console.log('Envoi du formulaire vers:', API_URL + '/menu');
+                
+                const response = await fetch(API_URL + '/menu', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Statut de réponse:', response.status);
+                const responseText = await response.text();
+                console.log('Réponse brute:', responseText);
+                
+                const resultDiv = document.getElementById('result');
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        resultDiv.className = 'result success';
+                        resultDiv.textContent = '✅ Succès!\n\n' + JSON.stringify(data, null, 2);
+                    } catch (e) {
+                        resultDiv.className = 'result error';
+                        resultDiv.textContent = '⚠️ Réponse non-JSON:\n' + responseText;
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ Erreur ' + response.status + '\n\n' + responseText;
+                }
+            } catch (error) {
+                document.getElementById('result').className = 'result error';
+                document.getElementById('result').textContent = '❌ Erreur: ' + error.message;
+                console.error('Erreur complète:', error);
+            }
+        });
+    </script>
+</body>
+</html>

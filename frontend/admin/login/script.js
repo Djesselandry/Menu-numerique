@@ -2,7 +2,8 @@
 (function(){
   const authKey = 'adminToken';
   const userKey = 'adminUser';
-  const API_URL = 'http://localhost:5000/api';
+  // Utiliser window.location.origin pour être compatible avec n'importe quelle URL
+  const API_URL = window.location.origin + '/api';
 
   const loginScreen = document.getElementById('login-screen');
   const dashboard = document.getElementById('dashboard');
