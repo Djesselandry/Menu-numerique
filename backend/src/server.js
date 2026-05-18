@@ -26,7 +26,7 @@ function getLocalIPAddress() {
   const virtualInterfaces = [];
   
   // Interfaces virtuelles EXCLUES (VirtualBox, Docker, VPN, etc)
-  const blocklist = ['vEthernet', 'docker', 'vbox', 'virtualbox', 'lo', 'tun', 'tap', 'br-', 'veth', 'ovs-', 'vnet'];
+  const blocklist = ['vEthernet', 'docker', 'vbox', 'virtualbox', 'lo', 'tun', 'tap', 'br-', 'veth', 'ovs-', 'vnet', 'vmnet1','vmnet8'];
   
   // Collecter les interfaces réelles (exclure les virtuelles)
   for (const name of Object.keys(interfaces)) {
@@ -55,7 +55,7 @@ function getLocalIPAddress() {
   }
   
   // Chercher d'abord WiFi ou Ethernet
-  const priorityOrder = ['WiFi', 'wlan', 'Ethernet', 'eth', 'en', 'wlo'];
+  const priorityOrder = ['WiFi', 'wlan', 'Ethernet', 'eth', 'en', 'wlo','wlps1s0','wlp2s0f3u2i2'];
   
   for (const priority of priorityOrder) {
     const match = realInterfaces.find(ip => ip.name.toLowerCase().includes(priority.toLowerCase()));
